@@ -1,0 +1,5 @@
+{
+    "port": "COM4",
+    "board": "arduino:avr:uno",
+    "sketch": "HT-03_CAN_freqResp\\HT-03_CAN_freqResp.ino"
+}
