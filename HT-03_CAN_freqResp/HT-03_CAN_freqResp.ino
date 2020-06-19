@@ -17,16 +17,16 @@
 
 #define MOTOR_ADDRESS 0x01
 
-#define LOOPTIME 40
+#define LOOPTIME 35
 
-int A = 0.25*1024;
-double freq = 1; // [Hz]
+int A = 0.1*1024;
+double freq = 32; // [Hz]
 double omega = 2*3.14*freq;
 
 int pos = 0;
 int vel = 0;
-int kp = 100;
-int kd = 25;
+int kp = 150;
+int kd = 100;
 int ff = 0;
 
 unsigned int upos = pos - 32768; // 16 bit
@@ -145,8 +145,15 @@ void motor_readState()
     SERIAL.print(vel_cur);
     SERIAL.print(",  ");
     SERIAL.print(cur_cur);
-    SERIAL.println();
+    // SERIAL.println();
   }
+}
+
+
+void serialWriteTerminator()
+{
+  SERIAL.write(13);
+  SERIAL.write(10);
 }
 
 void setup()
@@ -175,7 +182,8 @@ void setup()
   motor_enable(); // モーターモードに入る
   delay(1000);
 
-  SERIAL.println("TIMER, TGTPOS, TGTVEL, TGTFF, CURPOS, CURVEL, CURCUR");
+  SERIAL.print("TIMER, TGTPOS, TGTVEL, TGTFF, CURPOS, CURVEL, CURCUR");
+  serialWriteTerminator();
 
   timer[0] = millis();
 }
@@ -193,6 +201,7 @@ void loop()
 
     // SERIAL.println("receiving CAN msg...");
     motor_readState();
+    serialWriteTerminator();
     
     timer[2] = millis() - timer[1];
     if (timer[2] < LOOPTIME)
@@ -201,8 +210,8 @@ void loop()
     }
     else
     {
-      SERIAL.print("time shortage: ");
-      SERIAL.println(timer[2] - LOOPTIME);
+      //SERIAL.print("time shortage: ");
+      //SERIAL.println(timer[2] - LOOPTIME);
     }
   }
 
