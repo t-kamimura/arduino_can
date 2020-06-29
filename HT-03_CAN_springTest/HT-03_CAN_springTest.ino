@@ -239,7 +239,12 @@ void loop()
     timer[1] = millis();
     SERIAL.print(timer[1] - timer[0]);
 
-    ff = -K*(pos_cur - TGT_POS);
+    int pos_cur = motor_readPos();
+    serialWriteTerminator();
+    double phi0 = 0.5*pi;
+    double theta = phi0 + pos_cur*pi/1024;
+
+    kp = K*(sin(theta) - sin(phi0))/theta;
     motor_writeCmd(pos, vel, kp, kd, ff);
 
     
