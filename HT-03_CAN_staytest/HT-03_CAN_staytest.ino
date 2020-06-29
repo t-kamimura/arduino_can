@@ -27,7 +27,7 @@
 // output_torque = kp*(position_error) + kd*velocity_error
 //                  + Feedforward_torque
 //---------------------------------------------------------
-int pos = 0.5*1024;
+int pos = 0.0*1024;
 int vel = 0;
 int kp = 10;
 int kd = 0;
