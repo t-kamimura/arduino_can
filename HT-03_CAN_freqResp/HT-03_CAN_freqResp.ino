@@ -20,12 +20,12 @@
 #define LOOPTIME 35
 
 int A = 0.1*1024;
-double freq = 32; // [Hz]
+double freq = 2; // [Hz]
 double omega = 2*3.14*freq;
 
 int pos = 0;
 int vel = 0;
-int kp = 150;
+int kp = 100;
 int kd = 100;
 int ff = 0;
 
