@@ -240,8 +240,10 @@ void loop()
 
     int pos_cur = motor_readPos();
     serialWriteTerminator();
+    double phi0 = 0.5*pi;
+    double theta = phi0 + pos_cur*pi/1024;
 
-    ff = K*(pos_cur - TGT_POS);
+    kp = K*(sin(theta) - sin(phi0))/theta;
     motor_writeCmd(pos, vel, kp, kd, ff);
 
     timer[2] = millis() - timer[1];
