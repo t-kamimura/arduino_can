@@ -18,8 +18,7 @@
 #define MOTOR_ADDRESS 0x01
 
 #define LOOPTIME 35
-
-#define K 0.1  // stiffness of virtual spring
+#define K 900  // stiffness of virtual spring
 #define TGT_POS 0 // target position
 
 /* Control table
@@ -126,13 +125,18 @@ void motor_writeCmd(int pos, int vel, int kp, int kd, int ff)
 
   // CAN通信で送る
   CAN.sendMsgBuf(MOTOR_ADDRESS, 0, 8, can_msg);
-
+  /*
   SERIAL.print(", ");
   SERIAL.print(pos);
   SERIAL.print(", ");
   SERIAL.print(vel);
   SERIAL.print(", ");
+  SERIAL.print(kp);
+  SERIAL.print(", ");
+  SERIAL.print(kd);
+  SERIAL.print(", ");
   SERIAL.print(ff);
+  */
 }
 
 void motor_readState()
@@ -181,6 +185,7 @@ int motor_readPos()
 
     // SERIAL.print("CUR: ID: ");
     // SERIAL.print(id);
+    /*
     SERIAL.print(", ");
     SERIAL.print(pos_cur);
     SERIAL.print(", ");
@@ -188,6 +193,7 @@ int motor_readPos()
     SERIAL.print(",  ");
     SERIAL.print(cur_cur);
     SERIAL.println();
+    */
 
     return pos_cur;
   }
@@ -225,7 +231,7 @@ void setup()
   motor_enable(); // モーターモードに入る
   delay(1000);
 
-  SERIAL.print("TIMER, TGTPOS, TGTVEL, TGTFF, CURPOS, CURVEL, CURCUR");
+  SERIAL.print("TIMER, TGTPOS, TGTVEL, KP, KD, TGTFF, CURPOS, CURVEL, CURCUR");
   serialWriteTerminator();
 
   timer[0] = millis();
@@ -234,17 +240,19 @@ void setup()
 void loop()
 {
 
-  for (int i = 0; i < 150; i++)
+  for (int i = 0; i < 500; i++)
   {
     timer[1] = millis();
     SERIAL.print(timer[1] - timer[0]);
+    
+    double phi0 = -0.5*3.14;
+    double theta = phi0 + pos_cur*3.14/1024;
 
-    int pos_cur = motor_readPos();
-    serialWriteTerminator();
-    double phi0 = 0.5*pi;
-    double theta = phi0 + pos_cur*pi/1024;
-
-    kp = K*(sin(theta) - sin(phi0))/theta;
+    int kp = -K*(sin(theta) - sin(phi0))/theta;
+//    SERIAL.print(", ");
+//    SERIAL.print(theta);
+    SERIAL.print(", ");
+    SERIAL.print(kp);
     motor_writeCmd(pos, vel, kp, kd, ff);
 
     
