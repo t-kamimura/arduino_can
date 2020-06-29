@@ -19,7 +19,7 @@
 
 #define LOOPTIME 35
 
-#define K 0.01   // stiffness of virtual spring
+#define K 0.1  // stiffness of virtual spring
 #define TGT_POS 0 // target position
 
 /* Control table
@@ -38,8 +38,8 @@ output_torque = kp*(position_error) + kd*velocity_error
 
 int pos = 0;    // target position
 int vel = 0;    // target velocity
-int kp = 150;   // PD control P gain
-int kd = 100;   // PD control D gain
+int kp = 0;   // PD control P gain
+int kd = 0;   // PD control D gain
 int ff = 0;     // target feedforward torque
 
 unsigned int upos = pos - 32768; // 16 bit
@@ -49,6 +49,7 @@ unsigned int ukd = kd;           // 12 bit (defined as positive value only)
 unsigned int uff = ff - 2048;    // 12 bit
 
 unsigned long timer[3];
+int pos_cur = TGT_POS;
 
 //the cs pin of the version after v1.1 is default to D9
 //v0.9b and v1.0 is default D10
@@ -186,7 +187,7 @@ int motor_readPos()
     SERIAL.print(vel_cur);
     SERIAL.print(",  ");
     SERIAL.print(cur_cur);
-    // SERIAL.println();
+    SERIAL.println();
 
     return pos_cur;
   }
@@ -238,12 +239,13 @@ void loop()
     timer[1] = millis();
     SERIAL.print(timer[1] - timer[0]);
 
-    int pos_cur = motor_readPos();
-    serialWriteTerminator();
-
-    ff = K*(pos_cur - TGT_POS);
+    ff = -K*(pos_cur - TGT_POS);
     motor_writeCmd(pos, vel, kp, kd, ff);
 
+    
+    pos_cur = motor_readPos();
+    serialWriteTerminator();
+    
     timer[2] = millis() - timer[1];
     if (timer[2] < LOOPTIME)
     {
@@ -251,8 +253,8 @@ void loop()
     }
     else
     {
-      //SERIAL.print("time shortage: ");
-      //SERIAL.println(timer[2] - LOOPTIME);
+      SERIAL.print("time shortage: ");
+      SERIAL.println(timer[2] - LOOPTIME);
     }
   }
 

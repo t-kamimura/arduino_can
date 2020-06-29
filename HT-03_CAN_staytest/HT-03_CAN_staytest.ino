@@ -29,8 +29,8 @@
 //---------------------------------------------------------
 int pos = 0*1024;
 int vel = 0;
-int kp = 100;
-int kd = 50;
+int kp = 50;
+int kd = 25;
 int ff = 0;
 
 // convert signed variables to unsigned variables to match the protocols
@@ -142,12 +142,12 @@ void loop()
     CAN.sendMsgBuf(MOTOR_ADDRESS, 0, 8, can_msg); //send data
 
     // SERIAL.println("receiving CAN msg...");
-
+  
     if (CAN_MSGAVAIL == CAN.checkReceive()) //check if data coming
     {
       CAN.readMsgBuf(&len, buf); //read data, len: data length, buf: data buf
 
-      unsigned long canId = CAN.getCanId();
+      //unsigned long canId = CAN.getCanId();
 
       // SERIAL.println("-------------------------");
       // SERIAL.print("Get dataID from : 0x");
@@ -186,6 +186,7 @@ void loop()
       SERIAL.print(",  ");
       SERIAL.print(cur_cur);
       SERIAL.println();
+      
       timer[2] = millis() - timer[1];
       if (timer[2] < LOOPTIME)
       {
