@@ -1,6 +1,6 @@
 % serialread
 
-%% initial settings
+% initial settings
 clear
 close all
 
@@ -11,7 +11,7 @@ set(0, 'defaultTextFontSize', 16);
 set(0, 'defaultTextFontName', 'Times new roman');
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-s = serialport("COM3", 9600);
+s = serialport("COM11", 9600);
 configureTerminator(s, "CR/LF");
 flush(s);
 s.UserData = struct("Data", [], "Count", 1)
