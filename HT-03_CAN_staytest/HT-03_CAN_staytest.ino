@@ -27,10 +27,10 @@
 // output_torque = kp*(position_error) + kd*velocity_error
 //                  + Feedforward_torque
 //---------------------------------------------------------
-int pos = 0.0*1024;
+int pos = 0*1024;
 int vel = 0;
-int kp = 10;
-int kd = 0;
+int kp = 100;
+int kd = 50;
 int ff = 0;
 
 // convert signed variables to unsigned variables to match the protocols
@@ -68,6 +68,7 @@ void setup()
   delay(1000);
 
   // 現在の位置をゼロにする
+  
   SERIAL.print("position initializing...");
   can_msg[0] = 0xFF;
   can_msg[1] = 0xFF;
@@ -81,6 +82,8 @@ void setup()
   CAN.sendMsgBuf(MOTOR_ADDRESS, 0, 8, can_msg);
   digitalWrite(LED3, HIGH);
   delay(1000);
+  
+  
 
   // モーターモードに入り，トルクをオンにする
   SERIAL.print("Motor ctrl ON...");
@@ -210,6 +213,8 @@ void loop()
   CAN.sendMsgBuf(MOTOR_ADDRESS, 0, 8, can_msg);
   delay(500);
   SERIAL.println("Program finish!");
+  digitalWrite(LED3, LOW);
+  
   while (true)
   {
     delay(100);
