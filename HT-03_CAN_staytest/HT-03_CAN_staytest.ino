@@ -13,7 +13,7 @@
 #define LED2 8 //Define LED pins on CAN-Bus Shield
 #define LED3 7 //Define LED pins on CAN-Bus Shield
 #define MOTOR_ADDRESS 0x01
-#define LOOPTIME 100
+#define LOOPTIME 5
 
 // Control table
 //---------------------------------------------------------
@@ -51,7 +51,7 @@ unsigned char can_msg[8]; // 8 bytes CAN message
 
 void setup()
 {
-  SERIAL.begin(9600);
+  SERIAL.begin(115200);
   pinMode(LED2, OUTPUT);
   pinMode(LED3, OUTPUT);
   delay(1000);
@@ -108,7 +108,7 @@ void loop()
   unsigned char len = 0;
   unsigned char buf[6];
 
-  for (int i = 0; i < 200; i++)
+  while (millis()-timer[0] < 10000)
   {
     timer[1] = millis();
 

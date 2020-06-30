@@ -17,7 +17,8 @@
 
 #define MOTOR_ADDRESS 0x01
 
-#define LOOPTIME 35
+#define BAUDRATE 115200 //シリアル通信がボトルネックにならないよう，速めに設定しておく
+#define LOOPTIME 5
 
 int A = 0.1*1024;
 double freq = 2; // [Hz]
@@ -158,7 +159,7 @@ void serialWriteTerminator()
 
 void setup()
 {
-  SERIAL.begin(9600);
+  SERIAL.begin(BAUDRATE);
   pinMode(LED2, OUTPUT);
   pinMode(LED3, OUTPUT);
   delay(1000);
@@ -191,7 +192,7 @@ void setup()
 void loop()
 {
 
-  for (int i = 0; i < 150; i++)
+  for (int i = 0; i < 500; i++)
   {
     timer[1] = millis();
     SERIAL.print(timer[1] - timer[0]);
