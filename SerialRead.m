@@ -11,10 +11,10 @@ set(0, 'defaultTextFontSize', 16);
 set(0, 'defaultTextFontName', 'Times new roman');
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-s = serialport("COM11", 9600);
+s = serialport("COM3", 115200);
 configureTerminator(s, "CR/LF");
 flush(s);
-s.UserData = struct("Data", [], "Count", 1)
+s.UserData = struct("Data", [], "Count", 1);
 global Dataset countnum
 configureCallback(s, "terminator", @readSerialData)
 
@@ -28,7 +28,7 @@ function readSerialData(src, Dataset, countnum)
         src.UserData.Data(end + 1, :) = str2num(data);
         disp(data)
     end
-    if src.UserData.Count > 154
+    if src.UserData.Count > 990
         disp("off")
         configureCallback(src, "off");
         Dataset = src.UserData.Data;

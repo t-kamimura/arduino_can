@@ -11,16 +11,20 @@
 #define SERIAL Serial
 #endif
 
-//Define LED pins
 #define LED2 8
 #define LED3 7
+#define UP A1
+#define DOWN A3
+#define LEFT A2
+#define RIGHT A5
+#define CLICK A4
 
 #define MOTOR_ADDRESS 0x01
 
 #define BAUDRATE 115200
 #define LOOPTIME 5
 
-#define K 200  // stiffness of virtual spring
+#define K 600     // stiffness of virtual spring
 #define TGT_POS 0 // target position
 
 /* Control table
@@ -37,11 +41,11 @@ output_torque = kp*(position_error) + kd*velocity_error
 ---------------------------------------------------------
 */
 
-int pos = 0;    // target position
-int vel = 0;    // target velocity
-int kp = 0;   // PD control P gain
-int kd = 0;   // PD control D gain
-int ff = 0;     // target feedforward torque
+int pos = 0; // target position
+int vel = 0; // target velocity
+int kp = 0;  // PD control P gain
+int kd = 0;  // PD control D gain
+int ff = 0;  // target feedforward torque
 
 unsigned int upos = pos - 32768; // 16 bit
 unsigned int uvel = vel - 2048;  // 12 bit
@@ -127,7 +131,7 @@ void motor_writeCmd(int pos, int vel, int kp, int kd, int ff)
 
   // CAN通信で送る
   CAN.sendMsgBuf(MOTOR_ADDRESS, 0, 8, can_msg);
-  
+
   SERIAL.print(", ");
   SERIAL.print(pos);
   SERIAL.print(", ");
@@ -138,7 +142,6 @@ void motor_writeCmd(int pos, int vel, int kp, int kd, int ff)
   SERIAL.print(kd);
   SERIAL.print(", ");
   SERIAL.print(ff);
-  
 }
 
 void motor_readState()
@@ -187,14 +190,14 @@ int motor_readPos()
 
     // SERIAL.print("CUR: ID: ");
     // SERIAL.print(id);
-    
+
     SERIAL.print(", ");
     SERIAL.print(pos_cur);
     SERIAL.print(", ");
     SERIAL.print(vel_cur);
     SERIAL.print(",  ");
     SERIAL.print(cur_cur);
-//    SERIAL.println();
+    //    SERIAL.println();
 
     return pos_cur;
   }
@@ -211,6 +214,8 @@ void setup()
   SERIAL.begin(BAUDRATE);
   pinMode(LED2, OUTPUT);
   pinMode(LED3, OUTPUT);
+  pinMode(CLICK, INPUT);
+  digitalWrite(CLICK, HIGH);
   delay(1000);
 
   while (CAN_OK != CAN.begin(CAN_1000KBPS)) //init can bus : baudrate = 500k
@@ -241,25 +246,29 @@ void setup()
 void loop()
 {
 
-  while (millis()-timer[0] < 15000)
+  while (millis() - timer[0] < 15000)
   {
+    if (digitalRead(CLICK) == HIGH)
+    {
+      break
+    }
     timer[1] = millis();
     SERIAL.print(timer[1] - timer[0]);
-    
-    double phi0 = -0.5*3.14;
-    double phi = pos_cur*3.14/600;
+
+    double phi0 = -0.5 * 3.14;
+    double phi = pos_cur * 3.14 / 600;
     double theta = phi0 + phi;
 
-    int kp = K*(sin(0.5*theta) - sin(0.5*phi0))/phi;
-//    SERIAL.print(", ");
-//    SERIAL.print(theta);
-//    SERIAL.print(", ");
-//    SERIAL.print(kp);
+    int kp = K * (sin(0.5 * theta) - sin(0.5 * phi0)) / phi;
+    //    SERIAL.print(", ");
+    //    SERIAL.print(theta);
+    //    SERIAL.print(", ");
+    //    SERIAL.print(kp);
     motor_writeCmd(pos, vel, kp, kd, ff);
 
     pos_cur = motor_readPos();
     serialWriteTerminator();
-    
+
     timer[2] = millis() - timer[1];
     if (timer[2] < LOOPTIME)
     {

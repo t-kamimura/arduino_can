@@ -1,5 +1,5 @@
-/* freqency responce*/
-/* 周波数応答を調べるプログラム */
+/* spring test */
+/* 2リンク脚モジュールを直動バネのように動かしたい */
 
 #include <mcp_can.h>
 #include <SPI.h>
@@ -14,22 +14,39 @@
 //Define LED pins
 #define LED2 8
 #define LED3 7
+#define UP A1
+#define DOWN A3
+#define LEFT A2
+#define RIGHT A5
+#define CLICK A4
 
 #define MOTOR_ADDRESS 0x01
 
-#define BAUDRATE 115200 //シリアル通信がボトルネックにならないよう，速めに設定しておく
+#define BAUDRATE 115200
 #define LOOPTIME 5
 
-int A = 0.1*1024;
-double freq = 32; // [Hz]
-double omega = 2*3.14*freq;
+#define K 600     // stiffness of virtual spring
+#define TGT_POS 0 // target position
 
-int pos = 0;
-int vel = 0;
-int kp = 150;
-int kd = 100;
-int ff = 0;
+/* Control table
+---------------------------------------------------------
+MIT-Cheetah motor is controlled with 5 variables:
+position... target position
+velocity... target velocity
+kp... PD control P gain
+kd... PD control D gain
+ff... Feedforward torque bias input
+---------------------------------------------------------
+output_torque = kp*(position_error) + kd*velocity_error
+                 + Feedforward_torque
+---------------------------------------------------------
+*/
 
+int pos = 0; // target position
+int vel = 0; // target velocity
+int kp = 0;  // PD control P gain
+int kd = 0;  // PD control D gain
+int ff = 0;  // target feedforward torque
 
 unsigned int upos = pos - 32768; // 16 bit
 unsigned int uvel = vel - 2048;  // 12 bit
@@ -38,6 +55,7 @@ unsigned int ukd = kd;           // 12 bit (defined as positive value only)
 unsigned int uff = ff - 2048;    // 12 bit
 
 unsigned long timer[3];
+int pos_cur = TGT_POS;
 
 //the cs pin of the version after v1.1 is default to D9
 //v0.9b and v1.0 is default D10
@@ -96,11 +114,11 @@ void motor_zeroPosition()
 void motor_writeCmd(int pos, int vel, int kp, int kd, int ff)
 {
   // 符号なし変数に変換
-  upos = (unsigned int)(pos - 32768);             // 16 bit
-  uvel = (unsigned int)(vel - 2048); // 12 bit
-  ukp = (unsigned int)(kp);          // 12 bit (defined as positive value only)
-  ukd = (unsigned int)(kd);          // 12 bit (defined as positive value only)
-  uff = (unsigned int)(ff - 2048);   // 12 bit
+  upos = (unsigned int)(pos - 32768); // 16 bit
+  uvel = (unsigned int)(vel - 2048);  // 12 bit
+  ukp = (unsigned int)(kp);           // 12 bit (defined as positive value only)
+  ukd = (unsigned int)(kd);           // 12 bit (defined as positive value only)
+  uff = (unsigned int)(ff - 2048);    // 12 bit
 
   // 入力をプロンプトに合わせて変換
   can_msg[0] = upos >> 8;
@@ -114,11 +132,15 @@ void motor_writeCmd(int pos, int vel, int kp, int kd, int ff)
 
   // CAN通信で送る
   CAN.sendMsgBuf(MOTOR_ADDRESS, 0, 8, can_msg);
-  
+
   SERIAL.print(", ");
   SERIAL.print(pos);
   SERIAL.print(", ");
   SERIAL.print(vel);
+  SERIAL.print(", ");
+  SERIAL.print(kp);
+  SERIAL.print(", ");
+  SERIAL.print(kd);
   SERIAL.print(", ");
   SERIAL.print(ff);
 }
@@ -151,6 +173,36 @@ void motor_readState()
   }
 }
 
+int motor_readPos()
+{
+  if (CAN_MSGAVAIL == CAN.checkReceive()) //check if data coming
+  {
+    CAN.readMsgBuf(&len, buf); //read data, len: data length, buf: data buf
+
+    unsigned long canId = CAN.getCanId();
+    unsigned int id = buf[0];
+    unsigned int upos_cur = (buf[1] << 8) + buf[2];
+    unsigned int uvel_cur = (buf[3] << 4) + ((buf[4] & 0xF0) >> 4);
+    unsigned int ucur_cur = ((buf[4] & 0x0F) << 8) + buf[5];
+
+    int pos_cur = upos_cur + 32768;
+    int vel_cur = uvel_cur - 2048;
+    int cur_cur = ucur_cur - 2048;
+
+    // SERIAL.print("CUR: ID: ");
+    // SERIAL.print(id);
+
+    SERIAL.print(", ");
+    SERIAL.print(pos_cur);
+    SERIAL.print(", ");
+    SERIAL.print(vel_cur);
+    SERIAL.print(",  ");
+    SERIAL.print(cur_cur);
+    //    SERIAL.println();
+
+    return pos_cur;
+  }
+}
 
 void serialWriteTerminator()
 {
@@ -163,6 +215,8 @@ void setup()
   SERIAL.begin(BAUDRATE);
   pinMode(LED2, OUTPUT);
   pinMode(LED3, OUTPUT);
+  pinMode(CLICK, INPUT);
+  digitalWrite(CLICK, HIGH);
   delay(1000);
 
   while (CAN_OK != CAN.begin(CAN_1000KBPS)) //init can bus : baudrate = 500k
@@ -177,14 +231,14 @@ void setup()
   delay(1000);
 
   // SERIAL.print("position initializing...");
-  motor_zeroPosition();  // 現在位置をゼロということにする
-  digitalWrite(LED3, HIGH);
+  motor_zeroPosition(); // 現在位置をゼロということにする
   delay(1000);
 
   motor_enable(); // モーターモードに入る
   delay(1000);
+  digitalWrite(LED3, HIGH);
 
-  SERIAL.print("TIMER, TGTPOS, TGTVEL, TGTFF, CURPOS, CURVEL, CURCUR");
+  SERIAL.print("TIMER, TGTPOS, TGTVEL, KP, KD, TGTFF, CURPOS, CURVEL, CURCUR");
   serialWriteTerminator();
 
   timer[0] = millis();
@@ -193,18 +247,30 @@ void setup()
 void loop()
 {
 
-  while (millis() - timer[0] < 5000)
+  while (1)
   {
+    if (digitalRead(CLICK)==HIGH)
+    {
+      break;
+    }
+    
     timer[1] = millis();
     SERIAL.print(timer[1] - timer[0]);
 
-    pos = A * sin(omega * (timer[1] - timer[0]) * 0.001);
+    double phi0 = -0.5 * 3.14;
+    double phi = pos_cur * 3.14 / 600;
+    double theta = phi0 + phi;
+
+    int kp = K * (sin(0.5 * theta) - sin(0.5 * phi0)) / phi;
+    //    SERIAL.print(", ");
+    //    SERIAL.print(theta);
+    //    SERIAL.print(", ");
+    //    SERIAL.print(kp);
     motor_writeCmd(pos, vel, kp, kd, ff);
 
-    // SERIAL.println("receiving CAN msg...");
-    motor_readState();
+    pos_cur = motor_readPos();
     serialWriteTerminator();
-    
+
     timer[2] = millis() - timer[1];
     if (timer[2] < LOOPTIME)
     {
@@ -212,14 +278,15 @@ void loop()
     }
     else
     {
-      //SERIAL.print("time shortage: ");
-      //SERIAL.println(timer[2] - LOOPTIME);
+      SERIAL.print("time shortage: ");
+      SERIAL.println(timer[2] - LOOPTIME);
     }
   }
 
   motor_disable();
   delay(500);
   // SERIAL.println("Program finish!");
+  digitalWrite(LED2, LOW);
   digitalWrite(LED3, LOW);
   while (true)
   {
