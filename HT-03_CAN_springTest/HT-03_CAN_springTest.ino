@@ -13,10 +13,6 @@
 
 #define LED2 8
 #define LED3 7
-#define UP A1
-#define DOWN A3
-#define LEFT A2
-#define RIGHT A5
 #define CLICK A4
 
 #define MOTOR_ADDRESS 0x01
@@ -248,9 +244,9 @@ void loop()
 
   while (millis() - timer[0] < 15000)
   {
-    if (digitalRead(CLICK) == HIGH)
+    if (digitalRead(CLICK) == LOW)
     {
-      break
+      break;
     }
     timer[1] = millis();
     SERIAL.print(timer[1] - timer[0]);
@@ -283,7 +279,7 @@ void loop()
 
   motor_disable();
   delay(500);
-  // SERIAL.println("Program finish!");
+  SERIAL.println("Program finish!");
   digitalWrite(LED2, LOW);
   digitalWrite(LED3, LOW);
   while (true)

@@ -219,7 +219,7 @@ void loop()
 
   motor_disable();
   delay(500);
-  // SERIAL.println("Program finish!");
+  SERIAL.println("Program finish!");
   digitalWrite(LED3, LOW);
   while (true)
   {
