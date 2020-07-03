@@ -27,7 +27,7 @@
 // output_torque = kp*(position_error) + kd*velocity_error
 //                  + Feedforward_torque
 //---------------------------------------------------------
-int pos = 0*1024;
+int pos = 0 * 1024;
 int vel = 0;
 int kp = 50;
 int kd = 25;
@@ -56,6 +56,7 @@ void setup()
   pinMode(LED3, OUTPUT);
   delay(1000);
 
+  // CAN initialization
   while (CAN_OK != CAN.begin(CAN_1000KBPS)) //init can bus : baudrate = 500k
   {
     SERIAL.println("CAN BUS Shield init fail");
@@ -67,8 +68,7 @@ void setup()
   digitalWrite(LED2, HIGH);
   delay(1000);
 
-  // 現在の位置をゼロにする
-  
+  // エンコーダのゼロを現在の位置にする
   SERIAL.print("position initializing...");
   can_msg[0] = 0xFF;
   can_msg[1] = 0xFF;
@@ -82,8 +82,6 @@ void setup()
   CAN.sendMsgBuf(MOTOR_ADDRESS, 0, 8, can_msg);
   digitalWrite(LED3, HIGH);
   delay(1000);
-  
-  
 
   // モーターモードに入り，トルクをオンにする
   SERIAL.print("Motor ctrl ON...");
@@ -98,17 +96,16 @@ void setup()
   SERIAL.println("sending CAN msg...");
   CAN.sendMsgBuf(MOTOR_ADDRESS, 0, 8, can_msg);
   delay(1000);
-  SERIAL.println("TIMER, TGTPOS, TGTVEL, TGTFF, CURPOS, CURVEL, CURCUR");
 
-  timer[0] = millis();
+  timer[0] = millis(); // 制御用タイマー
 }
 
 void loop()
 {
-  unsigned char len = 0;
-  unsigned char buf[6];
+  unsigned char len = 0; // 受信バッファ長さ
+  unsigned char buf[6];  // 受信バッファ
 
-  while (millis()-timer[0] < 10000)
+  while (millis() - timer[0] < 10000)
   {
     timer[1] = millis();
 
@@ -121,43 +118,26 @@ void loop()
     can_msg[5] = ukd >> 4;
     can_msg[6] = ((ukd & 0x000F) << 4) + (uff >> 8);
     can_msg[7] = uff & 0xff;
-    // SERIAL.print("TGT: ID: ");
-    // SERIAL.print(MOTOR_ADDRESS);
-    // SERIAL.print(" POS: ");
-    // SERIAL.print(pos);
-    // SERIAL.print(" VEL:");
-    // SERIAL.print(vel);
-    // SERIAL.print(" CUR:");
-    // SERIAL.print(ff);
-    // SERIAL.println();
 
+    // コマンド内容をシリアルでPCに送信
     SERIAL.print(timer[1] - timer[0]);
-    SERIAL.print(", ");
+    SERIAL.print("ID: ");
+    SERIAL.print(MOTOR_ADDRESS);
+    SERIAL.print(" POS: ");
     SERIAL.print(pos);
-    SERIAL.print(", ");
+    SERIAL.print(" VEL:");
     SERIAL.print(vel);
-    SERIAL.print(", ");
+    SERIAL.print(" CUR:");
     SERIAL.print(ff);
+    SERIAL.println();
 
     CAN.sendMsgBuf(MOTOR_ADDRESS, 0, 8, can_msg); //send data
 
     // SERIAL.println("receiving CAN msg...");
-  
+
     if (CAN_MSGAVAIL == CAN.checkReceive()) //check if data coming
     {
       CAN.readMsgBuf(&len, buf); //read data, len: data length, buf: data buf
-
-      //unsigned long canId = CAN.getCanId();
-
-      // SERIAL.println("-------------------------");
-      // SERIAL.print("Get dataID from : 0x");
-      // SERIAL.println(canId, HEX);
-      // for (int i = 0; i < len; i++) //print the data
-      // {
-      //   SERIAL.print(buf[i], HEX);
-      //   SERIAL.print("\t");
-      // }
-      // SERIAL.println();
 
       // 受け取ったデータをプロトコルに基づき変換
       unsigned int id = buf[0];
@@ -169,24 +149,16 @@ void loop()
       int vel_cur = uvel_cur - 2048;
       int cur_cur = ucur_cur - 2048;
 
-      // SERIAL.print("CUR: ID: ");
-      // SERIAL.print(id);
-      // SERIAL.print(" POS: ");
-      // SERIAL.print(pos_cur);
-      // SERIAL.print(" VEL:");
-      // SERIAL.print(vel_cur);
-      // SERIAL.print(" CUR:");
-      // SERIAL.print(cur_cur);
-      // SERIAL.println();
-
-      SERIAL.print(", ");
+      SERIAL.print("CUR: ID: ");
+      SERIAL.print(id);
+      SERIAL.print(" POS: ");
       SERIAL.print(pos_cur);
-      SERIAL.print(", ");
+      SERIAL.print(" VEL:");
       SERIAL.print(vel_cur);
-      SERIAL.print(",  ");
+      SERIAL.print(" CUR:");
       SERIAL.print(cur_cur);
       SERIAL.println();
-      
+
       timer[2] = millis() - timer[1];
       if (timer[2] < LOOPTIME)
       {
@@ -215,7 +187,7 @@ void loop()
   delay(500);
   SERIAL.println("Program finish!");
   digitalWrite(LED3, LOW);
-  
+
   while (true)
   {
     delay(100);
