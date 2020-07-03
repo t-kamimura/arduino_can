@@ -12,13 +12,6 @@
 
 #define LED2 8 //Define LED pins on CAN-Bus Shield
 #define LED3 7 //Define LED pins on CAN-Bus Shield
-
-#define UP     A1
-#define DOWN   A3
-#define LEFT   A2
-#define RIGHT  A5
-#define CLICK  A4
-
 #define MOTOR_ADDRESS 0x01
 #define LOOPTIME 5
 
@@ -61,9 +54,6 @@ void setup()
   SERIAL.begin(115200);
   pinMode(LED2, OUTPUT);
   pinMode(LED3, OUTPUT);
-  //Initialize pins as necessary
-  pinMode(CLICK,INPUT);
-  digitalWrite(CLICK,HIGH);
   delay(1000);
 
   while (CAN_OK != CAN.begin(CAN_1000KBPS)) //init can bus : baudrate = 500k
@@ -120,7 +110,6 @@ void loop()
 
   while (millis()-timer[0] < 10000)
   {
-    if (digitalRead(CLICK)==HIGH)
     timer[1] = millis();
 
     // 入力をプロンプトに合わせて変換
