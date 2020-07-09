@@ -24,7 +24,7 @@
 // kd... PD control D gain
 // ff... Feedforward torque bias input
 //---------------------------------------------------------
-// output_torque = kp*(position_error) + kd*velocity_error
+// output_torque = kp*position_error + kd*velocity_error
 //                  + Feedforward_torque
 //---------------------------------------------------------
 int pos = 0 * 1024;
@@ -57,7 +57,7 @@ void setup()
   delay(1000);
 
   // CAN initialization
-  while (CAN_OK != CAN.begin(CAN_1000KBPS)) //init can bus : baudrate = 500k
+  while (CAN_OK != CAN.begin(CAN_1000KBPS)) //init can bus : baudrate = 1Mbps
   {
     SERIAL.println("CAN BUS Shield init fail");
     SERIAL.println(" Init CAN BUS Shield again");
