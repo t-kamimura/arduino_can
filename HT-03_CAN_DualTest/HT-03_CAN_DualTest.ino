@@ -20,16 +20,17 @@ ID  role
 //Define LED pins
 #define LED2 8
 #define LED3 7
+#define CLICK A4
 
 #define MOTOR_ADDRESS_1 0x01
 #define MOTOR_ADDRESS_2 0x02
 
 #define BAUDRATE 115200 //シリアル通信がボトルネックにならないよう，速めに設定しておく
-#define LOOPTIME 5
+#define LOOPTIME 10
 
 int pos = 0;
 int vel = 0;
-int kp = 0;
+int kp = 50;
 int kd = 0;
 int ff = 0;
 
@@ -131,6 +132,10 @@ void motor_writeCmd(int motor_address_, int pos_, int vel_, int kp_, int kd_, in
   SERIAL.print(vel);
   SERIAL.print(", ");
   SERIAL.print(ff);
+  SERIAL.print(", ");
+  SERIAL.print(kp);
+  SERIAL.print(", ");
+  SERIAL.print(kd);
 }
 
 void motor_readState()
@@ -162,7 +167,7 @@ void motor_readState()
       motor2.cur_cur = cur_cur_;
     }
 
-    SERIAL.print("CUR: ID: ");
+    SERIAL.print(", CUR ID=");
     SERIAL.print(id_);
     SERIAL.print(", ");
     SERIAL.print(pos_cur_);
@@ -185,6 +190,8 @@ void setup()
   SERIAL.begin(BAUDRATE);
   pinMode(LED2, OUTPUT);
   pinMode(LED3, OUTPUT);
+  pinMode(CLICK, INPUT);
+  digitalWrite(CLICK, HIGH);
   delay(1000);
 
   while (CAN_OK != CAN.begin(CAN_1000KBPS)) //init can bus : baudrate = 500k
@@ -217,8 +224,12 @@ void setup()
 void loop()
 {
 
-  while (millis() - timer[0] < 5000)
+  while (1)
   {
+    if (digitalRead(CLICK)==LOW)
+    {
+      break;
+    }
     timer[1] = millis();
     SERIAL.print(timer[1] - timer[0]);
 
@@ -226,6 +237,7 @@ void loop()
     motor_writeCmd(MOTOR_ADDRESS_2, pos, vel, kp, kd, ff);
 
     // SERIAL.println("receiving CAN msg...");
+    motor_readState();
     motor_readState();
     serialWriteTerminator();
 

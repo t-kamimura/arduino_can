@@ -16,7 +16,7 @@
 #define LED3 7
 #define CLICK A4
 
-#define MOTOR_ADDRESS 0x01
+#define MOTOR_ADDRESS 0x02
 
 #define BAUDRATE 115200
 #define LOOPTIME 5
