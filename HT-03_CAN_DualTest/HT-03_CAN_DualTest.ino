@@ -3,8 +3,8 @@
 
 /*-------------------------------------
 ID  role
-1   Root joint
-2   Knee joint
+1   Knee joint
+2   Root joint
 ---------------------------------------*/
 
 #include <mcp_can.h>
@@ -28,13 +28,15 @@ ID  role
 #define BAUDRATE 115200 //シリアル通信がボトルネックにならないよう，速めに設定しておく
 #define LOOPTIME 10
 
-int pos = 0;
+int pos1 = -60;
 int vel = 0;
 int kp = 50;
 int kd = 0;
 int ff = 0;
 
-unsigned int upos = pos - 32768; // 16 bit
+int pos2 = 60;
+
+unsigned int upos = pos1 - 32768; // 16 bit
 unsigned int uvel = vel - 2048;  // 12 bit
 unsigned int ukp = kp;           // 12 bit (defined as positive value only)
 unsigned int ukd = kd;           // 12 bit (defined as positive value only)
@@ -127,15 +129,15 @@ void motor_writeCmd(int motor_address_, int pos_, int vel_, int kp_, int kd_, in
   CAN.sendMsgBuf(motor_address_, 0, 8, can_msg);
 
   SERIAL.print(", ");
-  SERIAL.print(pos);
+  SERIAL.print(pos_);
   SERIAL.print(", ");
-  SERIAL.print(vel);
+  SERIAL.print(vel_);
   SERIAL.print(", ");
-  SERIAL.print(ff);
+  SERIAL.print(ff_);
   SERIAL.print(", ");
-  SERIAL.print(kp);
+  SERIAL.print(kp_);
   SERIAL.print(", ");
-  SERIAL.print(kd);
+  SERIAL.print(kd_);
 }
 
 void motor_readState()
@@ -200,19 +202,39 @@ void setup()
     SERIAL.println(" Init CAN BUS Shield again");
     delay(100);
   }
-
-  // SERIAL.println("CAN BUS Shield init ok!");
-  digitalWrite(LED2, HIGH);
+  SERIAL.println("CAN BUS Shield init ok!");
   delay(1000);
 
+  motor_disable(MOTOR_ADDRESS_1);
+  motor_disable(MOTOR_ADDRESS_2);
+  delay(1000);
+
+  SERIAL.println("Please set the leg straight...then CLICK");
+  while (1)
+  {
+    if (digitalRead(CLICK)==LOW)
+    {
+      break;
+    }
+  }
   // SERIAL.print("position initializing...");
   motor_zeroPosition(MOTOR_ADDRESS_1); // 現在位置をゼロということにする
   motor_zeroPosition(MOTOR_ADDRESS_2); // 現在位置をゼロということにする
-  digitalWrite(LED3, HIGH);
+  digitalWrite(LED2, HIGH);
   delay(1000);
 
-  motor_enable(MOTOR_ADDRESS_1); // モーターモードに入る
+  SERIAL.println("Please set the initial position...then CLICK");
+  while (1)
+  {
+    if (digitalRead(CLICK)==LOW)
+    {
+      break;
+    }
+  }
+
   motor_enable(MOTOR_ADDRESS_2); // モーターモードに入る
+  motor_enable(MOTOR_ADDRESS_1); // モーターモードに入る
+  digitalWrite(LED3, HIGH);
   delay(1000);
 
   SERIAL.print("TIMER, TGTPOS, TGTVEL, TGTFF, CURPOS, CURVEL, CURCUR");
@@ -233,8 +255,8 @@ void loop()
     timer[1] = millis();
     SERIAL.print(timer[1] - timer[0]);
 
-    motor_writeCmd(MOTOR_ADDRESS_1, pos, vel, kp, kd, ff);
-    motor_writeCmd(MOTOR_ADDRESS_2, pos, vel, kp, kd, ff);
+    motor_writeCmd(MOTOR_ADDRESS_1, pos1, vel, kp, kd, ff);
+    motor_writeCmd(MOTOR_ADDRESS_2, pos2, vel, kp, kd, ff);
 
     // SERIAL.println("receiving CAN msg...");
     motor_readState();
