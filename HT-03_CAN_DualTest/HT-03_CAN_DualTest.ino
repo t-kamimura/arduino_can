@@ -3,8 +3,8 @@
 
 /*-------------------------------------
 ID  role
-1   Knee joint
-2   Root joint
+1   Root joint
+2   Knee joint
 ---------------------------------------*/
 
 #include <mcp_can.h>
@@ -28,27 +28,32 @@ ID  role
 #define BAUDRATE 115200 //シリアル通信がボトルネックにならないよう，速めに設定しておく
 #define LOOPTIME 10
 
-int pos1 = -60;
-int vel = 0;
-int kp = 50;
-int kd = 0;
-int ff = 0;
+// int pos1 = 60;
+// int vel = 0;
+// int kp = 50;
+// int kd = 0;
+// int ff = 0;
 
-int pos2 = 60;
+// int pos2 = -60;
 
-unsigned int upos = pos1 - 32768; // 16 bit
-unsigned int uvel = vel - 2048;  // 12 bit
-unsigned int ukp = kp;           // 12 bit (defined as positive value only)
-unsigned int ukd = kd;           // 12 bit (defined as positive value only)
-unsigned int uff = ff - 2048;    // 12 bit
+// unsigned int upos = pos1 - 32768; // 16 bit
+// unsigned int uvel = vel - 2048;  // 12 bit
+// unsigned int ukp = kp;           // 12 bit (defined as positive value only)
+// unsigned int ukd = kd;           // 12 bit (defined as positive value only)
+// unsigned int uff = ff - 2048;    // 12 bit
 
 struct motor
 {
   int pos_cur = 0;
   int vel_cur = 0;
   int cur_cur = 0;
+  int id = 0x00;
+  int pos = 0;
+  int vel = 0;
+  int ff = 0;
+  int kp = 0;
+  int kd = 0;
 } motor1, motor2;
-
 
 unsigned long timer[3];
 
@@ -109,21 +114,21 @@ void motor_zeroPosition(int motor_address_)
 void motor_writeCmd(int motor_address_, int pos_, int vel_, int kp_, int kd_, int ff_)
 {
   // 符号なし変数に変換
-  upos = (unsigned int)(pos_ - 32768);             // 16 bit
-  uvel = (unsigned int)(vel_ - 2048); // 12 bit
-  ukp = (unsigned int)(kp_);          // 12 bit (defined as positive value only)
-  ukd = (unsigned int)(kd_);          // 12 bit (defined as positive value only)
-  uff = (unsigned int)(ff_ - 2048);   // 12 bit
+  unsigned int upos_ = pos_ - 32768;             // 16 bit
+  unsigned int uvel_ = vel_ - 2048; // 12 bit
+  unsigned int ukp_ = kp_;          // 12 bit (defined as positive value only)
+  unsigned int ukd_ = kd_;          // 12 bit (defined as positive value only)
+  unsigned int uff_ = ff_ - 2048;   // 12 bit
 
   // 入力をプロンプトに合わせて変換
-  can_msg[0] = upos >> 8;
-  can_msg[1] = upos & 0x00FF;
-  can_msg[2] = (uvel >> 4) & 0xFF;
-  can_msg[3] = ((uvel & 0x000F) << 4) + ((ukp >> 8) & 0xFF);
-  can_msg[4] = ukp & 0xFF;
-  can_msg[5] = ukd >> 4;
-  can_msg[6] = ((ukd & 0x000F) << 4) + (uff >> 8);
-  can_msg[7] = uff & 0xff;
+  can_msg[0] = upos_ >> 8;
+  can_msg[1] = upos_ & 0x00FF;
+  can_msg[2] = (uvel_ >> 4) & 0xFF;
+  can_msg[3] = ((uvel_ & 0x000F) << 4) + ((ukp_ >> 8) & 0xFF);
+  can_msg[4] = ukp_ & 0xFF;
+  can_msg[5] = ukd_ >> 4;
+  can_msg[6] = ((ukd_ & 0x000F) << 4) + (uff_ >> 8);
+  can_msg[7] = uff_ & 0xff;
 
   // CAN通信で送る
   CAN.sendMsgBuf(motor_address_, 0, 8, can_msg);
@@ -194,6 +199,14 @@ void setup()
   pinMode(LED3, OUTPUT);
   pinMode(CLICK, INPUT);
   digitalWrite(CLICK, HIGH);
+  motor1.id = MOTOR_ADDRESS_1;
+  motor2.id = MOTOR_ADDRESS_2;
+  motor1.pos = 60;
+  motor2.pos = -60;
+  motor1.kp = 10;
+  motor2.kp = 10;
+  motor1.kd = 10;
+  motor2.kd = 10;
   delay(1000);
 
   while (CAN_OK != CAN.begin(CAN_1000KBPS)) //init can bus : baudrate = 500k
@@ -205,8 +218,8 @@ void setup()
   SERIAL.println("CAN BUS Shield init ok!");
   delay(1000);
 
-  motor_disable(MOTOR_ADDRESS_1);
-  motor_disable(MOTOR_ADDRESS_2);
+  motor_disable(motor1.id);
+  motor_disable(motor2.id);
   delay(1000);
 
   SERIAL.println("Please set the leg straight...then CLICK");
@@ -218,8 +231,8 @@ void setup()
     }
   }
   // SERIAL.print("position initializing...");
-  motor_zeroPosition(MOTOR_ADDRESS_1); // 現在位置をゼロということにする
-  motor_zeroPosition(MOTOR_ADDRESS_2); // 現在位置をゼロということにする
+  motor_zeroPosition(motor1.id); // 現在位置をゼロということにする
+  motor_zeroPosition(motor2.id); // 現在位置をゼロということにする
   digitalWrite(LED2, HIGH);
   delay(1000);
 
@@ -232,8 +245,8 @@ void setup()
     }
   }
 
-  motor_enable(MOTOR_ADDRESS_2); // モーターモードに入る
-  motor_enable(MOTOR_ADDRESS_1); // モーターモードに入る
+  motor_enable(motor1.id); // モーターモードに入る
+  motor_enable(motor2.id); // モーターモードに入る
   digitalWrite(LED3, HIGH);
   delay(1000);
 
@@ -255,8 +268,8 @@ void loop()
     timer[1] = millis();
     SERIAL.print(timer[1] - timer[0]);
 
-    motor_writeCmd(MOTOR_ADDRESS_1, pos1, vel, kp, kd, ff);
-    motor_writeCmd(MOTOR_ADDRESS_2, pos2, vel, kp, kd, ff);
+    motor_writeCmd(motor1.id, motor1.pos, motor1.vel, motor1.kp, motor1.kd, motor1.ff);
+    motor_writeCmd(motor2.id, motor2.pos, motor2.vel, motor2.kp, motor2.kd, motor2.ff);
 
     // SERIAL.println("receiving CAN msg...");
     motor_readState();
@@ -275,8 +288,8 @@ void loop()
     }
   }
 
-  motor_disable(MOTOR_ADDRESS_1);
-  motor_disable(MOTOR_ADDRESS_2);
+  motor_disable(motor2.id);
+  motor_disable(motor1.id);
   delay(500);
   SERIAL.println("Program finish!");
   digitalWrite(LED3, LOW);
