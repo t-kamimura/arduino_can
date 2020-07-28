@@ -15,7 +15,7 @@
 #define LED3 7
 #define CLICK A4
 
-#define MOTOR_ADDRESS 0x01
+#define MOTOR_ADDRESS 0x02
 
 #define BAUDRATE 115200
 #define LOOPTIME 5
@@ -225,6 +225,9 @@ void setup()
   digitalWrite(LED2, HIGH);
   delay(1000);
 
+  motor_disable();
+  delay(1000);
+
   // SERIAL.print("position initializing...");
   motor_zeroPosition(); // 現在位置をゼロということにする
   delay(1000);
@@ -255,7 +258,8 @@ void loop()
     double phi = pos_cur * 3.14 / 600;
     double theta = phi0 + phi;
 
-    int kp = K * (sin(0.5 * theta) - sin(0.5 * phi0)) / phi;
+    // int kp = K * (sin(0.5 * theta) - sin(0.5 * phi0)) / phi;
+    int kp = K * (cos(0.5 * theta) - cos(0.5 * phi0)) * sin(0.5 * theta) / phi;
     //    SERIAL.print(", ");
     //    SERIAL.print(theta);
     //    SERIAL.print(", ");

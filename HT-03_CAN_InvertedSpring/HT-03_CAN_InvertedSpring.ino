@@ -21,6 +21,9 @@ DEFINITIONS OF VARIABLES
 #define BAUDRATE 115200 //シリアル通信がボトルネックにならないよう，速めに設定しておく
 #define LOOPTIME 10
 
+#define K 600     // stiffness of virtual spring
+#define PHI0 300
+
 //the cs pin of the version after v1.1 is default to D9
 //v0.9b and v1.0 is default D10
 const int SPI_CS_PIN = 10;
@@ -51,12 +54,12 @@ void setup()
   pinMode(LED3, OUTPUT);
   pinMode(CLICK, INPUT);
   digitalWrite(CLICK, HIGH);
-  myMotor1.pos_tgt = 90;
-  myMotor2.pos_tgt = -180;
-  myMotor1.kp = 50;
-  myMotor2.kp = 100;
-  myMotor1.kd = 45;
-  myMotor2.kd = 90;
+  myMotor1.pos_tgt = 0.5*PHI0;
+  myMotor2.pos_tgt = -PHI0;
+  myMotor1.kp = 0;//50;
+  myMotor2.kp = 0;
+  myMotor1.kd = 0;//50;
+  myMotor2.kd = 0;
   delay(1000);
   while (CAN_OK != CAN.begin(CAN_1000KBPS)) //init can bus : baudrate = 500k
   {
@@ -94,6 +97,10 @@ void setup()
       break;
     }
   }
+  myMotor1.writeCmd(CAN);
+  myMotor2.writeCmd(CAN);
+  serialWriteTerminator();
+  delay(1000);
 
   myMotor1.enable(CAN); // モーターモードに入る
   myMotor2.enable(CAN); // モーターモードに入る
@@ -117,7 +124,14 @@ void loop()
     timer[1] = millis();
     Serial.print(timer[1] - timer[0]);
 
+    myMotor1.pos_tgt = -0.5*myMotor2.pos_cur;
+    myMotor1.kp = 200;
+    myMotor1.kd = 200;
     myMotor1.writeCmd(CAN);
+    
+    // myMotor2.kp = K * (cos(0.5 * myMotor2.pos_cur) - cos(PHI0)) * sin(0.5 * myMotor2.pos_cur) / myMotor2.pos_cur;
+    myMotor2.kp = 150;
+    myMotor2.kp = 200;
     myMotor2.writeCmd(CAN);
 
     // Serial.println("receiving CAN msg...");
