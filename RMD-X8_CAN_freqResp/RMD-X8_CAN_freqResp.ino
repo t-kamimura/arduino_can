@@ -26,9 +26,9 @@ MCP_CAN CAN(SPI_CS_PIN); //set CS PIN
 unsigned char len = 0;
 unsigned char cmd_buf[8], reply_buf[8];
 
-int A = 1000;
-double f = 10; //[Hz]
-double omega = 2*3.14*freq;
+int A = 25;
+double f = 1; //[Hz]
+double omega = 2*3.14*f;
 
 void setup() 
 {
@@ -46,9 +46,8 @@ void setup()
   delay(1000);
 
   motor_readPID(MOTOR_ADDRESS);
-  motor_off(MOTOR_ADDRESS);
-  // motor_stop(MOTOR_ADDRESS);
-  motor_runnig(MOTOR_ADDRESS);
+  motor_clear(MOTOR_ADDRESS);
+  delay(1000);
 
   SERIAL.print("TIMER, TGTPOS, CURPOS, CURVEL, CURCUR");
   serialWriteTerminator();
@@ -63,8 +62,8 @@ void loop()
     timer[1] = millis();
     SERIAL.print(timer[1] - timer[0]);
 
-    // int16_t cur = A * sin(omega * (timer[1] - timer[0]) * 0.001);
-    motor_writeCurrent(MOTOR_ADDRESS, 0);
+    int16_t cur = A * sin(omega * (timer[1] - timer[0]) * 0.001);
+    motor_writeCurrent(MOTOR_ADDRESS, cur);
 
     motor_readState();
     serialWriteTerminator();
@@ -76,8 +75,7 @@ void loop()
     }
   }
   
-  motor_off(MOTOR_ADDRESS);
-  // motor_stop(MOTOR_ADDRESS);
+  motor_clear(MOTOR_ADDRESS);
   delay(500);
   SERIAL.println("Program finish!");
   while (true) 
@@ -134,7 +132,7 @@ void motor_readState()
   }
 }
 
-void motor_readPID(unsigned char *addr, int16_t current)
+void motor_readPID(unsigned char *addr)
 {
   cmd_buf[0] = 0x30;
   cmd_buf[1] = 0x00;
@@ -147,6 +145,7 @@ void motor_readPID(unsigned char *addr, int16_t current)
 
   // Send message
   writeCmd(addr, cmd_buf);
+  delay(100);
 
   if (CAN_MSGAVAIL == CAN.checkReceive()) 
   {
@@ -171,7 +170,7 @@ void motor_readPID(unsigned char *addr, int16_t current)
     SERIAL.print("iqKp:");
     SERIAL.print(iqKp);
     SERIAL.print("iqKi:");
-    SERIAL.print(iqKi);
+    SERIAL.println(iqKi);
   }
 }
 
@@ -191,7 +190,7 @@ void motor_writePID(unsigned char *addr, int posKp, int posKi, int velKp, int ve
   writeCmd(addr, cmd_buf);
 }
 
-void motor_off(unsigned char *addr)
+void motor_clear(unsigned char *addr)
 {
   cmd_buf[0] = 0x80;
   cmd_buf[1] = 0x00;
@@ -203,34 +202,7 @@ void motor_off(unsigned char *addr)
   cmd_buf[7] = 0x00;
 
   writeCmd(addr, cmd_buf);
-}
-
-void motor_stop(unsigned char *addr)
-{
-  cmd_buf[0] = 0x81;
-  cmd_buf[1] = 0x00;
-  cmd_buf[2] = 0x00;
-  cmd_buf[3] = 0x00;
-  cmd_buf[4] = 0x00;
-  cmd_buf[5] = 0x00;
-  cmd_buf[6] = 0x00;
-  cmd_buf[7] = 0x00;
-
-  writeCmd(addr, cmd_buf);
-}
-
-void motor_runnig(unsigned char *addr)
-{
-  cmd_buf[0] = 0x88;
-  cmd_buf[1] = 0x00;
-  cmd_buf[2] = 0x00;
-  cmd_buf[3] = 0x00;
-  cmd_buf[4] = 0x00;
-  cmd_buf[5] = 0x00;
-  cmd_buf[6] = 0x00;
-  cmd_buf[7] = 0x00;
-
-  writeCmd(addr, cmd_buf);
+  SERIAL.println("Motor Clear ...");
 }
 
 void motor_writeCurrent(unsigned char *addr, int16_t current) 
@@ -245,7 +217,7 @@ void motor_writeCurrent(unsigned char *addr, int16_t current)
   cmd_buf[6] = 0x00;
   cmd_buf[7] = 0x00;
 
-  SERIAL.print(", ");
+  SERIAL.print(",");
   SERIAL.print(current);
 
   // Send message
@@ -264,7 +236,7 @@ void motor_writeVelocity(unsigned char *addr, int32_t velocity)
   cmd_buf[6] = (velocity >> 16) & 0xFF;
   cmd_buf[7] = (velocity >> 24) & 0xFF;
 
-  SERIAL.print(", ");
+  SERIAL.print(",");
   SERIAL.print(velocity);
 
   // Send message
@@ -283,10 +255,9 @@ void motor_writePosition(unsigned char *addr, int32_t position)
   cmd_buf[6] = (position >> 16) & 0xFF;
   cmd_buf[7] = (position >> 24) & 0xFF;
 
-  SERIAL.print(", ");
+  SERIAL.print(",");
   SERIAL.print(position);
 
   // Send message
   writeCmd(addr, cmd_buf);
 }
-
