@@ -26,7 +26,7 @@ MCP_CAN CAN(SPI_CS_PIN); //set CS PIN
 unsigned char len = 0;
 unsigned char cmd_buf[8], reply_buf[8];
 
-int A = 25;
+int A = 500;
 double f = 1; //[Hz]
 double omega = 2*3.14*f;
 
@@ -62,10 +62,14 @@ void loop()
     timer[1] = millis();
     SERIAL.print(timer[1] - timer[0]);
 
-    int16_t cur = A * sin(omega * (timer[1] - timer[0]) * 0.001);
-    motor_writeCurrent(MOTOR_ADDRESS, cur);
+    int16_t tgt_pos = A * sin(omega * (timer[1] - timer[0]) * 0.001);
+    // int16_t tgt_pos = 30000 * sin(omega * (timer[1] - timer[0]) * 0.001);
+    // int16_t tgt_pos = 16384;
 
-    motor_readState();
+    motor_writePosition(MOTOR_ADDRESS, tgt_pos);
+    // motor_writeCurrent(MOTOR_ADDRESS, 0);
+
+    motor_readState(MOTOR_ADDRESS);
     serialWriteTerminator();
 
     timer[2] = millis() - timer[1];
@@ -105,7 +109,7 @@ void writeCmd(unsigned char *addr, unsigned char *buf)
 }
 
 // Motor Command ----------------------------------------------
-void motor_readState() 
+void motor_readState(unsigned char *addr) 
 {
   //check if data coming
   if (CAN_MSGAVAIL == CAN.checkReceive()) 
@@ -114,21 +118,17 @@ void motor_readState()
     
     unsigned char cmd_byte = reply_buf[0];
     uint8_t temperature = reply_buf[1];
-    uint16_t ucur = (reply_buf[2] << 8) + reply_buf[3];
-    uint16_t uvel = (reply_buf[4] << 8) + reply_buf[5];
-    uint16_t upos = (reply_buf[6] << 8) + reply_buf[7];
-
-    // // uint -> int
-    // int cur = ucur - 2048;
-    // int vel = uvel - 2048;
-    // int pos = upos - 2048;
+    int16_t cur = (reply_buf[2] << 8) + reply_buf[3];
+    int16_t vel = (reply_buf[4] << 8) + reply_buf[5];
+    // int16_t pos = (reply_buf[6] << 8) + reply_buf[7];    // 16bit以下のエンコーダならこれで読み取れる
+    long pos = motor_readAngle(addr);
 
     SERIAL.print(",");
-    SERIAL.print(upos);
+    SERIAL.print(pos);
     SERIAL.print(",");
-    SERIAL.print(uvel);
+    SERIAL.print(vel);
     SERIAL.print(",");
-    SERIAL.print(ucur);
+    SERIAL.print(cur);
   }
 }
 
@@ -188,6 +188,33 @@ void motor_writePID(unsigned char *addr, int posKp, int posKi, int velKp, int ve
 
   // Send message
   writeCmd(addr, cmd_buf);
+}
+
+long motor_readAngle(unsigned char *addr)
+{
+  cmd_buf[0] = 0x92;
+  cmd_buf[1] = 0x00;
+  cmd_buf[2] = 0x00;
+  cmd_buf[3] = 0x00;
+  cmd_buf[4] = 0x00;
+  cmd_buf[5] = 0x00;
+  cmd_buf[6] = 0x00;
+  cmd_buf[7] = 0x00;
+
+  // Send message
+  writeCmd(addr, cmd_buf);
+  delay(1);
+
+  if (CAN_MSGAVAIL == CAN.checkReceive()) 
+  {
+    CAN.readMsgBuf(&len, reply_buf); //read data, len: data length, buf: data buf
+    
+    unsigned char cmd_byte = reply_buf[0];
+    // int64_t pos = (reply_buf[1] << 48) + (reply_buf[2] << 40) + (reply_buf[3] << 32) + (reply_buf[4] << 24) + (reply_buf[5] << 16) + (reply_buf[6] << 8) + reply_buf[7];  
+    int32_t pos = reply_buf[4] + (reply_buf[5] >> 8) + (reply_buf[6] >> 16) + (reply_buf[7] >> 24);  
+    return pos;
+  }
+  return 0;
 }
 
 void motor_clear(unsigned char *addr)
