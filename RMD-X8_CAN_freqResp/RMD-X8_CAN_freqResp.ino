@@ -118,9 +118,9 @@ void motor_readState(unsigned char *addr)
     
     unsigned char cmd_byte = reply_buf[0];
     uint8_t temperature = reply_buf[1];
-    int16_t cur = (reply_buf[2] << 8) + reply_buf[3];
-    int16_t vel = (reply_buf[4] << 8) + reply_buf[5];
-    // int16_t pos = (reply_buf[6] << 8) + reply_buf[7];    // 16bit以下のエンコーダならこれで読み取れる
+    int16_t cur = reply_buf[2] + (reply_buf[3] << 8);
+    int16_t vel = reply_buf[4] + (reply_buf[5] << 8);
+    // int16_t pos = reply_buf[6] + (reply_buf[7] << 8);    // 16bit以下のエンコーダならこれで読み取れる
     long pos = motor_readAngle(addr);
 
     SERIAL.print(",");
@@ -225,8 +225,8 @@ long motor_readAngle(unsigned char *addr)
     CAN.readMsgBuf(&len, reply_buf); //read data, len: data length, buf: data buf
     
     unsigned char cmd_byte = reply_buf[0];
-    // int64_t pos = (reply_buf[1] << 48) + (reply_buf[2] << 40) + (reply_buf[3] << 32) + (reply_buf[4] << 24) + (reply_buf[5] << 16) + (reply_buf[6] << 8) + reply_buf[7];  
-    int32_t pos = (reply_buf[4] << 24) + (reply_buf[5] << 16) + (reply_buf[6] << 8) + reply_buf[7];  
+    // int64_t pos = reply_buf[1] + (reply_buf[2] << 8) + (reply_buf[3] << 16) + (reply_buf[4] << 24) + (reply_buf[5] << 32) + (reply_buf[6] << 40) + (reply_buf[7] << 48);  
+    int32_t pos = reply_buf[4] + (reply_buf[5] << 8) + (reply_buf[6] << 16) + (reply_buf[7] << 24);  
     return pos;
   }
   return 0;
