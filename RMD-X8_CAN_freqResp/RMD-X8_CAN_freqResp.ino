@@ -211,7 +211,7 @@ long motor_readAngle(unsigned char *addr)
     
     unsigned char cmd_byte = reply_buf[0];
     // int64_t pos = (reply_buf[1] << 48) + (reply_buf[2] << 40) + (reply_buf[3] << 32) + (reply_buf[4] << 24) + (reply_buf[5] << 16) + (reply_buf[6] << 8) + reply_buf[7];  
-    int32_t pos = reply_buf[4] + (reply_buf[5] >> 8) + (reply_buf[6] >> 16) + (reply_buf[7] >> 24);  
+    int32_t pos = (reply_buf[4] << 24) + (reply_buf[5] << 16) + (reply_buf[6] << 8) + reply_buf[7];  
     return pos;
   }
   return 0;
