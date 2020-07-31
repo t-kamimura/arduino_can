@@ -190,6 +190,21 @@ void motor_writePID(unsigned char *addr, int posKp, int posKi, int velKp, int ve
   writeCmd(addr, cmd_buf);
 }
 
+void motor_writeEncoderOffset(unsigned char *addr, uint16_t encoderOffset) {
+  // encoder offset is uint16_t type.
+  cmd_buf[0] = 0x91;
+  cmd_buf[1] = 0x00;
+  cmd_buf[2] = 0x00;
+  cmd_buf[3] = 0x00;
+  cmd_buf[4] = 0x00;
+  cmd_buf[5] = 0x00;
+  cmd_buf[6] = encoderOffset & 0xFF;
+  cmd_buf[7] = (encoderOffset >> 8) & 0xFF;
+
+  // Send message
+  writeCmd(addr, cmd_buf);
+}
+
 long motor_readAngle(unsigned char *addr)
 {
   cmd_buf[0] = 0x92;
@@ -284,6 +299,53 @@ void motor_writePosition(unsigned char *addr, int32_t position)
 
   SERIAL.print(",");
   SERIAL.print(position);
+
+  // Send message
+  writeCmd(addr, cmd_buf);
+}
+
+void motor_writePosition_with_speedLimit(unsigned char *addr, uint16_t speedLimit, int32_t position) {
+  // position control is int32_t type. (4byteの符号付き整数)
+  cmd_buf[0] = 0xA4;
+  cmd_buf[1] = 0x00;
+  cmd_buf[2] = speedLimit & 0xFF;
+  cmd_buf[3] = (speedLimit >> 8) & 0xFF;
+  cmd_buf[4] = position & 0xFF;
+  cmd_buf[5] = (position >> 8) & 0xFF;
+  cmd_buf[6] = (position >> 16) & 0xFF;
+  cmd_buf[7] = (position >> 24) & 0xFF;
+
+  // Send message
+  writeCmd(addr, cmd_buf);
+}
+
+void motor_writePosition_with_direction(unsigned char *addr, uint8_t direction, uint16_t position) {
+  // position control is uint16_t type. (4byteの符号付き整数)
+  // regarding direction, 0x00 is clockwise, 0x01 is counterclockwise.  
+  cmd_buf[0] = 0xA5;
+  cmd_buf[1] = direction & 0xFF ;
+  cmd_buf[2] = 0x00;
+  cmd_buf[3] = 0x00;
+  cmd_buf[4] = position & 0xFF;
+  cmd_buf[5] = (position >> 8) & 0xFF;
+  cmd_buf[6] = 0x00;
+  cmd_buf[7] = 0x00;
+
+  // Send message
+  writeCmd(addr, cmd_buf);
+}
+
+void motor_writePosition_with_direction_and_speedLimit(unsigned char *addr, uint8_t direction, uint16_t speedLimit, uint16_t position) {
+  // position control is uint16_t type. (4byteの符号付き整数)
+  // regarding direction, 0x00 is clockwise, 0x01 is counterclockwise.  
+  cmd_buf[0] = 0xA6;
+  cmd_buf[1] = direction & 0xFF ;
+  cmd_buf[2] = speedLimit & 0xFF;
+  cmd_buf[3] = (speedLimit >> 8) & 0xFF;
+  cmd_buf[4] = position & 0xFF;
+  cmd_buf[5] = (position >> 8) & 0xFF;
+  cmd_buf[6] = 0x00;
+  cmd_buf[7] = 0x00;
 
   // Send message
   writeCmd(addr, cmd_buf);
