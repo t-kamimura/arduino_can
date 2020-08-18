@@ -49,7 +49,7 @@ void setup()
   motor_clear(MOTOR_ADDRESS);
   delay(1000);
 
-  SERIAL.print("TIMER, TGTPOS, CURPOS, CURVEL, CURCUR");
+  SERIAL.print("CMD, LowByte1, Byte2, Byte3, Byte4, Byte5, Byte6, Byte7");
   serialWriteTerminator();
 
   timer[0] = millis();
@@ -69,7 +69,9 @@ void loop()
     motor_writePosition(MOTOR_ADDRESS, tgt_pos);
     // motor_writeCurrent(MOTOR_ADDRESS, 0);
 
-    motor_readState(MOTOR_ADDRESS);
+    // motor_readState(MOTOR_ADDRESS);
+    motor_readAngle(MOTOR_ADDRESS);
+
     serialWriteTerminator();
 
     timer[2] = millis() - timer[1];
@@ -205,7 +207,7 @@ void motor_writeEncoderOffset(unsigned char *addr, uint16_t encoderOffset) {
   writeCmd(addr, cmd_buf);
 }
 
-long motor_readAngle(unsigned char *addr)
+void motor_readAngle(unsigned char *addr)
 {
   cmd_buf[0] = 0x92;
   cmd_buf[1] = 0x00;
@@ -225,11 +227,24 @@ long motor_readAngle(unsigned char *addr)
     CAN.readMsgBuf(&len, reply_buf); //read data, len: data length, buf: data buf
     
     unsigned char cmd_byte = reply_buf[0];
-    // int64_t pos = reply_buf[1] + (reply_buf[2] << 8) + (reply_buf[3] << 16) + (reply_buf[4] << 24) + (reply_buf[5] << 32) + (reply_buf[6] << 40) + (reply_buf[7] << 48);  
-    int32_t pos = reply_buf[4] + (reply_buf[5] << 8) + (reply_buf[6] << 16) + (reply_buf[7] << 24);  
-    return pos;
-  }
-  return 0;
+
+    SERIAL.print(",");
+    SERIAL.print(cmd_byte);
+    SERIAL.print(",");
+    SERIAL.print(uint8_t(reply_buf[1]));
+    SERIAL.print(",");
+    SERIAL.print(uint8_t(reply_buf[2]));
+    SERIAL.print(",");
+    SERIAL.print(uint8_t(reply_buf[3]));
+    SERIAL.print(",");
+    SERIAL.print(uint8_t(reply_buf[4]));
+    SERIAL.print(",");
+    SERIAL.print(uint8_t(reply_buf[5]));
+    SERIAL.print(",");
+    SERIAL.print(uint8_t(reply_buf[6]));
+    SERIAL.print(",");
+    SERIAL.print(uint8_t(reply_buf[7]));
+  };
 }
 
 void motor_clear(unsigned char *addr)
@@ -259,8 +274,8 @@ void motor_writeCurrent(unsigned char *addr, int16_t current)
   cmd_buf[6] = 0x00;
   cmd_buf[7] = 0x00;
 
-  SERIAL.print(",");
-  SERIAL.print(current);
+  // SERIAL.print(",");
+  // SERIAL.print(current);
 
   // Send message
   writeCmd(addr, cmd_buf);
@@ -297,8 +312,8 @@ void motor_writePosition(unsigned char *addr, int32_t position)
   cmd_buf[6] = (position >> 16) & 0xFF;
   cmd_buf[7] = (position >> 24) & 0xFF;
 
-  SERIAL.print(",");
-  SERIAL.print(position);
+  // SERIAL.print(",");
+  // SERIAL.print(position);
 
   // Send message
   writeCmd(addr, cmd_buf);
