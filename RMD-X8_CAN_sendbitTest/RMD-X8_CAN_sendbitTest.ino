@@ -30,12 +30,12 @@ int A = 500;
 double f = 1; //[Hz]
 double omega = 2*3.14*f;
 
-void setup()
+void setup() 
 {
   SERIAL.begin(BAUDRATE);
   delay(1000);
 
-  while (CAN_OK != CAN.begin(CAN_1000KBPS))
+  while (CAN_OK != CAN.begin(CAN_1000KBPS)) 
   {
     SERIAL.println("CAN BUS Shield init fail");
     SERIAL.println("Init CAN BUS Shield again");
@@ -49,25 +49,29 @@ void setup()
   motor_clear(MOTOR_ADDRESS);
   delay(1000);
 
-  SERIAL.print("TIMER, TGTPOS, CURPOS, CURVEL, CURCUR");
+  SERIAL.print("CMD, LowByte1, Byte2, Byte3, Byte4, Byte5, Byte6, Byte7");
   serialWriteTerminator();
 
   timer[0] = millis();
 }
 
-void loop()
+void loop() 
 {
-  while (millis() - timer[0] < 5000)
+  while (millis() - timer[0] < 5000) 
   {
     timer[1] = millis();
     SERIAL.print(timer[1] - timer[0]);
 
     int16_t tgt_pos = A * sin(omega * (timer[1] - timer[0]) * 0.001);
+    // int16_t tgt_pos = 30000 * sin(omega * (timer[1] - timer[0]) * 0.001);
+    // int16_t tgt_pos = 16384;
 
     motor_writePosition(MOTOR_ADDRESS, tgt_pos);
-//    motor_writeCurrent(MOTOR_ADDRESS, 0);
+    // motor_writeCurrent(MOTOR_ADDRESS, 0);
 
-    motor_readState(MOTOR_ADDRESS);
+    // motor_readState(MOTOR_ADDRESS);
+    motor_readAngle(MOTOR_ADDRESS);
+
     serialWriteTerminator();
 
     timer[2] = millis() - timer[1];
@@ -76,11 +80,11 @@ void loop()
       delay(LOOPTIME - timer[2]);
     }
   }
-
+  
   motor_clear(MOTOR_ADDRESS);
   delay(500);
   SERIAL.println("Program finish!");
-  while (true)
+  while (true) 
   {
     delay(100);
   }
@@ -89,17 +93,17 @@ void loop()
 
 
 // Function ----------------------------------------------------
-void serialWriteTerminator()
+void serialWriteTerminator() 
 {
   SERIAL.write(13);
   SERIAL.write(10);
 }
 
-void writeCmd(unsigned char *addr, unsigned char *buf)
+void writeCmd(unsigned char *addr, unsigned char *buf) 
 {
   // CAN通信で送る
   unsigned char sendState = CAN.sendMsgBuf(addr, 0, 8, buf);
-  if (sendState != CAN_OK)
+  if (sendState != CAN_OK) 
   {
     SERIAL.println("Error Sending Message...");
     SERIAL.println(sendState);
@@ -107,13 +111,13 @@ void writeCmd(unsigned char *addr, unsigned char *buf)
 }
 
 // Motor Command ----------------------------------------------
-void motor_readState(unsigned char *addr)
+void motor_readState(unsigned char *addr) 
 {
   //check if data coming
-  if (CAN_MSGAVAIL == CAN.checkReceive())
+  if (CAN_MSGAVAIL == CAN.checkReceive()) 
   {
     CAN.readMsgBuf(&len, reply_buf); //read data, len: data length, buf: data buf
-
+    
     unsigned char cmd_byte = reply_buf[0];
     uint8_t temperature = reply_buf[1];
     int16_t cur = reply_buf[2] + (reply_buf[3] << 8);
@@ -145,10 +149,10 @@ void motor_readPID(unsigned char *addr)
   writeCmd(addr, cmd_buf);
   delay(100);
 
-  if (CAN_MSGAVAIL == CAN.checkReceive())
+  if (CAN_MSGAVAIL == CAN.checkReceive()) 
   {
     CAN.readMsgBuf(&len, reply_buf); //read data, len: data length, buf: data buf
-
+    
     unsigned char cmd_byte = reply_buf[0];
     int posKp = reply_buf[2];
     int posKi = reply_buf[3];
@@ -203,7 +207,7 @@ void motor_writeEncoderOffset(unsigned char *addr, uint16_t encoderOffset) {
   writeCmd(addr, cmd_buf);
 }
 
-long motor_readAngle(unsigned char *addr)
+void motor_readAngle(unsigned char *addr)
 {
   cmd_buf[0] = 0x92;
   cmd_buf[1] = 0x00;
@@ -218,16 +222,29 @@ long motor_readAngle(unsigned char *addr)
   writeCmd(addr, cmd_buf);
   delay(1);
 
-  if (CAN_MSGAVAIL == CAN.checkReceive())
+  if (CAN_MSGAVAIL == CAN.checkReceive()) 
   {
     CAN.readMsgBuf(&len, reply_buf); //read data, len: data length, buf: data buf
-
+    
     unsigned char cmd_byte = reply_buf[0];
-    // int64_t pos = reply_buf[1] + (reply_buf[2] << 8) + (reply_buf[3] << 16) + (reply_buf[4] << 24) + (reply_buf[5] << 32) + (reply_buf[6] << 40) + (reply_buf[7] << 48);
-    int32_t pos = reply_buf[4] + (reply_buf[5] << 8) + (reply_buf[6] << 16) + (reply_buf[7] << 24);
-    return pos;
-  }
-  return 0;
+
+    SERIAL.print(",");
+    SERIAL.print(cmd_byte);
+    SERIAL.print(",");
+    SERIAL.print(uint8_t(reply_buf[1]));
+    SERIAL.print(",");
+    SERIAL.print(uint8_t(reply_buf[2]));
+    SERIAL.print(",");
+    SERIAL.print(uint8_t(reply_buf[3]));
+    SERIAL.print(",");
+    SERIAL.print(uint8_t(reply_buf[4]));
+    SERIAL.print(",");
+    SERIAL.print(uint8_t(reply_buf[5]));
+    SERIAL.print(",");
+    SERIAL.print(uint8_t(reply_buf[6]));
+    SERIAL.print(",");
+    SERIAL.print(uint8_t(reply_buf[7]));
+  };
 }
 
 void motor_clear(unsigned char *addr)
@@ -245,7 +262,7 @@ void motor_clear(unsigned char *addr)
   SERIAL.println("Motor Clear ...");
 }
 
-void motor_writeCurrent(unsigned char *addr, int16_t current)
+void motor_writeCurrent(unsigned char *addr, int16_t current) 
 {
   // current control is int16_t type. (2byteの符号付き整数)
   cmd_buf[0] = 0xA1;
@@ -257,14 +274,14 @@ void motor_writeCurrent(unsigned char *addr, int16_t current)
   cmd_buf[6] = 0x00;
   cmd_buf[7] = 0x00;
 
-  SERIAL.print(",");
-  SERIAL.print(current);
+  // SERIAL.print(",");
+  // SERIAL.print(current);
 
   // Send message
   writeCmd(addr, cmd_buf);
 }
 
-void motor_writeVelocity(unsigned char *addr, int32_t velocity)
+void motor_writeVelocity(unsigned char *addr, int32_t velocity) 
 {
   // velocity control is int32_t type. (4byteの符号付き整数)
   cmd_buf[0] = 0xA2;
@@ -283,7 +300,7 @@ void motor_writeVelocity(unsigned char *addr, int32_t velocity)
   writeCmd(addr, cmd_buf);
 }
 
-void motor_writePosition(unsigned char *addr, int32_t position)
+void motor_writePosition(unsigned char *addr, int32_t position) 
 {
   // position control is int32_t type. (4byteの符号付き整数)
   cmd_buf[0] = 0xA3;
@@ -295,8 +312,8 @@ void motor_writePosition(unsigned char *addr, int32_t position)
   cmd_buf[6] = (position >> 16) & 0xFF;
   cmd_buf[7] = (position >> 24) & 0xFF;
 
-  SERIAL.print(",");
-  SERIAL.print(position);
+  // SERIAL.print(",");
+  // SERIAL.print(position);
 
   // Send message
   writeCmd(addr, cmd_buf);
@@ -319,7 +336,7 @@ void motor_writePosition_with_speedLimit(unsigned char *addr, uint16_t speedLimi
 
 void motor_writePosition_with_direction(unsigned char *addr, uint8_t direction, uint16_t position) {
   // position control is uint16_t type. (4byteの符号付き整数)
-  // regarding direction, 0x00 is clockwise, 0x01 is counterclockwise.
+  // regarding direction, 0x00 is clockwise, 0x01 is counterclockwise.  
   cmd_buf[0] = 0xA5;
   cmd_buf[1] = direction & 0xFF ;
   cmd_buf[2] = 0x00;
@@ -335,7 +352,7 @@ void motor_writePosition_with_direction(unsigned char *addr, uint8_t direction, 
 
 void motor_writePosition_with_direction_and_speedLimit(unsigned char *addr, uint8_t direction, uint16_t speedLimit, uint16_t position) {
   // position control is uint16_t type. (4byteの符号付き整数)
-  // regarding direction, 0x00 is clockwise, 0x01 is counterclockwise.
+  // regarding direction, 0x00 is clockwise, 0x01 is counterclockwise.  
   cmd_buf[0] = 0xA6;
   cmd_buf[1] = direction & 0xFF ;
   cmd_buf[2] = speedLimit & 0xFF;
