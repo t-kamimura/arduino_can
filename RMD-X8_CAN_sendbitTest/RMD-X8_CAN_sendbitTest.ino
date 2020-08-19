@@ -26,8 +26,8 @@ MCP_CAN CAN(SPI_CS_PIN); //set CS PIN
 unsigned char len = 0;
 unsigned char cmd_buf[8], reply_buf[8];
 
-int A = 500;
-double f = 1; //[Hz]
+int A = 5000;
+double f = 0.5; //[Hz]
 double omega = 2*3.14*f;
 
 void setup() 
@@ -45,12 +45,13 @@ void setup()
   SERIAL.println("CAN BUS Shield init ok!");
   delay(1000);
 
-  motor_readPID(MOTOR_ADDRESS);
+//  motor_readPID(MOTOR_ADDRESS);
   motor_clear(MOTOR_ADDRESS);
-  delay(1000);
+  motor_writeEncoderOffset(MOTOR_ADDRESS, -10000);
+  delay(3000);
 
-  SERIAL.print("CMD, LowByte1, Byte2, Byte3, Byte4, Byte5, Byte6, Byte7");
-  serialWriteTerminator();
+  SERIAL.print("Time, CMD, LowByte1, Byte2, Byte3, Byte4, Byte5, Byte6, Byte7");
+//  serialWriteTerminator();
 
   timer[0] = millis();
 }
@@ -61,10 +62,12 @@ void loop()
   {
     timer[1] = millis();
     SERIAL.print(timer[1] - timer[0]);
+    SERIAL.print(",");
 
-    int16_t tgt_pos = A * sin(omega * (timer[1] - timer[0]) * 0.001);
+//    int32_t tgt_pos = A * sin(omega * (timer[1] - timer[0]) * 0.001);
+    
     // int16_t tgt_pos = 30000 * sin(omega * (timer[1] - timer[0]) * 0.001);
-    // int16_t tgt_pos = 16384;
+     int32_t tgt_pos = 0;
 
     motor_writePosition(MOTOR_ADDRESS, tgt_pos);
     // motor_writeCurrent(MOTOR_ADDRESS, 0);
@@ -72,7 +75,7 @@ void loop()
     // motor_readState(MOTOR_ADDRESS);
     motor_readAngle(MOTOR_ADDRESS);
 
-    serialWriteTerminator();
+//    serialWriteTerminator();
 
     timer[2] = millis() - timer[1];
     if (timer[2] < LOOPTIME)
@@ -81,7 +84,7 @@ void loop()
     }
   }
   
-  motor_clear(MOTOR_ADDRESS);
+//  motor_clear(MOTOR_ADDRESS);
   delay(500);
   SERIAL.println("Program finish!");
   while (true) 
@@ -123,14 +126,14 @@ void motor_readState(unsigned char *addr)
     int16_t cur = reply_buf[2] + (reply_buf[3] << 8);
     int16_t vel = reply_buf[4] + (reply_buf[5] << 8);
     // int16_t pos = reply_buf[6] + (reply_buf[7] << 8);    // 16bit以下のエンコーダならこれで読み取れる
-    long pos = motor_readAngle(addr);
+    motor_readAngle(addr);
 
-    SERIAL.print(",");
-    SERIAL.print(pos);
-    SERIAL.print(",");
-    SERIAL.print(vel);
-    SERIAL.print(",");
-    SERIAL.print(cur);
+//    SERIAL.print(",");
+//    SERIAL.print(pos);
+//    SERIAL.print(",");
+//    SERIAL.print(vel);
+//    SERIAL.print(",");
+//    SERIAL.print(cur);
   }
 }
 
@@ -220,30 +223,51 @@ void motor_readAngle(unsigned char *addr)
 
   // Send message
   writeCmd(addr, cmd_buf);
-  delay(1);
+  delay(5);
 
   if (CAN_MSGAVAIL == CAN.checkReceive()) 
   {
     CAN.readMsgBuf(&len, reply_buf); //read data, len: data length, buf: data buf
     
     unsigned char cmd_byte = reply_buf[0];
-
-    SERIAL.print(",");
+    if (reply_buf[0] == 0x92)
+    {
+//    SERIAL.print(",");
     SERIAL.print(cmd_byte);
     SERIAL.print(",");
-    SERIAL.print(uint8_t(reply_buf[1]));
+    SERIAL.print(reply_buf[1]);
     SERIAL.print(",");
-    SERIAL.print(uint8_t(reply_buf[2]));
+    SERIAL.print(reply_buf[2]);
     SERIAL.print(",");
-    SERIAL.print(uint8_t(reply_buf[3]));
+    SERIAL.print(reply_buf[3]);
     SERIAL.print(",");
-    SERIAL.print(uint8_t(reply_buf[4]));
+    SERIAL.print(reply_buf[4]);
     SERIAL.print(",");
-    SERIAL.print(uint8_t(reply_buf[5]));
+    SERIAL.print(reply_buf[5]);
     SERIAL.print(",");
-    SERIAL.print(uint8_t(reply_buf[6]));
+    SERIAL.print(reply_buf[6]);
     SERIAL.print(",");
-    SERIAL.print(uint8_t(reply_buf[7]));
+    SERIAL.print(reply_buf[7]);
+    serialWriteTerminator();
+   
+    };
+
+//    SERIAL.print(",");
+//    SERIAL.print(cmd_byte);
+//    SERIAL.print(",");
+//    SERIAL.print(int8_t(reply_buf[1]));
+//    SERIAL.print(",");
+//    SERIAL.print(int8_t(reply_buf[2]));
+//    SERIAL.print(",");
+//    SERIAL.print(int8_t(reply_buf[3]));
+//    SERIAL.print(",");
+//    SERIAL.print(int8_t(reply_buf[4]));
+//    SERIAL.print(",");
+//    SERIAL.print(int8_t(reply_buf[5]));
+//    SERIAL.print(",");
+//    SERIAL.print(int8_t(reply_buf[6]));
+//    SERIAL.print(",");
+//    SERIAL.print(int8_t(reply_buf[7]));    
   };
 }
 
