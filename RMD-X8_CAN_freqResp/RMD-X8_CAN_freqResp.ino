@@ -27,11 +27,11 @@ unsigned char len = 0;
 unsigned char buf[8], 
 cmd_buf[8], reply_buf[8];
 
-int deg = 50;
-int A = deg*65536*6/360;
-double f = 0.5; //[Hz]
+int A = 65536*0.3;
+double f = 12.8; //[Hz]
 double omega = 2*3.14*f;
-int offset_pos = -65536
+
+int offset = 65536*0.5;  //A < offset
 
 void setup()
 {
@@ -49,14 +49,15 @@ void setup()
   delay(1000);
 
   // motor_readPID(MOTOR_ADDRESS);
-  motor_clear(MOTOR_ADDRESS);
-  motor_writeEncoderOffset(MOTOR_ADDRESS, offset_pos);
+//  motor_clear(MOTOR_ADDRESS);
+//  motor_writeEncoderOffset(MOTOR_ADDRESS, -10000);
   delay(1000);
 
   // SERIAL.print("TIMER, TGTPOS, CURPOS, CURVEL, CURCUR");
   serialWriteTerminator();
 
   timer[0] = millis();
+  motor_writePosition(MOTOR_ADDRESS, offset);
 }
 
 void loop()
@@ -66,7 +67,7 @@ void loop()
     timer[1] = millis();
     SERIAL.print(timer[1] - timer[0]);
 
-    int32_t tgt_pos = A * sin(omega * (timer[1] - timer[0]) * 0.001) - offset_pos;
+    int32_t tgt_pos = A * sin(omega * (timer[1] - timer[0]) * 0.001) + offset;
 
     motor_writePosition(MOTOR_ADDRESS, tgt_pos);
     motor_readAngle(MOTOR_ADDRESS);
@@ -79,7 +80,7 @@ void loop()
     }
   }
 
-  motor_clear(MOTOR_ADDRESS);
+//  motor_clear(MOTOR_ADDRESS);
   delay(500);
   SERIAL.println("Program finish!");
   while (true)
@@ -122,13 +123,13 @@ void motor_readState(unsigned char *addr)
     int16_t vel = reply_buf[4] + (reply_buf[5] << 8);
     // int16_t pos = reply_buf[6] + (reply_buf[7] << 8);    // 16bit以下のエンコーダならこれで読み取れる
     // long pos = motor_readAngle(addr);
-
-    SERIAL.print(",");
-    SERIAL.print(pos);
-    SERIAL.print(",");
-    SERIAL.print(vel);
-    SERIAL.print(",");
-    SERIAL.print(cur);
+//
+//    SERIAL.print(",");
+//    SERIAL.print(pos);
+//    SERIAL.print(",");
+//    SERIAL.print(vel);
+//    SERIAL.print(",");
+//    SERIAL.print(cur);
   }
 }
 
@@ -225,8 +226,16 @@ void motor_readAngle(unsigned char *addr)
     CAN.readMsgBuf(&len, buf); //read data, len: data length, buf: data buf
     if (buf[0] == 0x92)
     {
-      reply_buf = buf;
-    };
+      reply_buf[0] = buf[0];
+      reply_buf[1] = buf[1];
+      reply_buf[2] = buf[2];
+      reply_buf[3] = buf[3];
+      reply_buf[4] = buf[4];
+      reply_buf[5] = buf[5];
+      reply_buf[6] = buf[6];
+      reply_buf[7] = buf[7];
+      
+    }
 
     SERIAL.print(",");
     SERIAL.print(reply_buf[0]);
@@ -244,8 +253,7 @@ void motor_readAngle(unsigned char *addr)
     SERIAL.print(reply_buf[6]);
     SERIAL.print(",");
     SERIAL.print(reply_buf[7]);
-
-  };
+  }
 }
 
 void motor_clear(unsigned char *addr)
