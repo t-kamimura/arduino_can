@@ -32,23 +32,31 @@ function readSerialData(src, Dataset, countnum)
         disp("off")
         configureCallback(src, "off");
         
-        % positionを読み取る
         Dataset = src.UserData.Data;
         time = src.UserData.Data(:, 1);
         tgt_pos = src.UserData.Data(:, 2);
         cmd_byte = src.UserData.Data(:, 3);
-        pos_low_1 = src.UserData.Data(:, 4);
-        pos_2 = src.UserData.Data(:, 5);
-        pos_3 = src.UserData.Data(:, 6);
-        pos_4 = src.UserData.Data(:, 7);
-        pos_5 = src.UserData.Data(:, 8);
-        pos_6 = src.UserData.Data(:, 9);
-        pos_7 = src.UserData.Data(:, 10);
+        temperature = src.UserData.Data(:, 4);
+        cur_L = src.UserData.Data(:, 5);
+        cur_H = src.UserData.Data(:, 6);
+        vel_L = src.UserData.Data(:, 7);
+        vel_H = src.UserData.Data(:, 8);
+        % pos_L = src.UserData.Data(:, 9);
+        % pos_H = src.UserData.Data(:, 10);
+        % pos_cmd = src.UserData.Data(:, 11);
+        pos_low_1 = src.UserData.Data(:, 12);
+        pos_2 = src.UserData.Data(:, 13);
+        pos_3 = src.UserData.Data(:, 14);
+        pos_4 = src.UserData.Data(:, 15);
+        pos_5 = src.UserData.Data(:, 16);
+        pos_6 = src.UserData.Data(:, 17);
+        pos_7 = src.UserData.Data(:, 18);
 
+        cur = bitshift(cur_H, 8, 'int64') + cur_L;
+        vel = bitshift(vel_H, 8, 'int64') + vel_L;
         pos = bitshift(pos_7, 48, 'int64') + bitshift(pos_6, 40, 'int64') + bitshift(pos_5, 32, 'int64') + bitshift(pos_4, 24, 'int64') + bitshift(pos_3, 16, 'int64') + bitshift(pos_2, 8, 'int64') + pos_low_1;
 
         countnum = src.UserData.Count;
-%         logData(1,:) = [time, cmd_byte, pos_low_1, pos_2, pos_3, pos_4, pos_5, pos_6, pos_7, pos];
         plot(time, tgt_pos)
         hold on
         try
@@ -60,8 +68,10 @@ function readSerialData(src, Dataset, countnum)
         xlabel("time [ms]")
         ylabel("input/output")
         legend({'input', 'output'})
+        
         filename = ['freqRespData.mat'];
         save(filename, "Dataset")
+
         filename = ['freqRespFig'];        
         saveas(gcf, filename, 'png')
 
