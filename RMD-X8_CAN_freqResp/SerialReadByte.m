@@ -28,7 +28,7 @@ function readSerialData(src, Dataset, countnum)
         src.UserData.Data(end + 1, :) = str2num(data);
         disp(data)
     end
-    if src.UserData.Count > 990
+    if src.UserData.Count > 900
         disp("off")
         configureCallback(src, "off");
         
@@ -41,8 +41,8 @@ function readSerialData(src, Dataset, countnum)
         cur_H = src.UserData.Data(:, 6);
         vel_L = src.UserData.Data(:, 7);
         vel_H = src.UserData.Data(:, 8);
-        % pos_L = src.UserData.Data(:, 9);
-        % pos_H = src.UserData.Data(:, 10);
+        pos_L = src.UserData.Data(:, 9);
+        pos_H = src.UserData.Data(:, 10);
         % pos_cmd = src.UserData.Data(:, 11);
         pos_low_1 = src.UserData.Data(:, 12);
         pos_2 = src.UserData.Data(:, 13);
@@ -52,11 +52,17 @@ function readSerialData(src, Dataset, countnum)
         pos_6 = src.UserData.Data(:, 17);
         pos_7 = src.UserData.Data(:, 18);
 
-        cur = bitshift(cur_H, 8, 'int64') + cur_L;
-        vel = bitshift(vel_H, 8, 'int64') + vel_L;
+        cur = (bitshift(cur_H, 8, 'int16') + cur_L)*33/2048;
+        vel = bitshift(vel_H, 8, 'int16') + vel_L;
+%         pos = bitshift(pos_H, 8, 'uint16') + pos_L;
         pos = bitshift(pos_7, 48, 'int64') + bitshift(pos_6, 40, 'int64') + bitshift(pos_5, 32, 'int64') + bitshift(pos_4, 24, 'int64') + bitshift(pos_3, 16, 'int64') + bitshift(pos_2, 8, 'int64') + pos_low_1;
 
         countnum = src.UserData.Count;
+        figure
+        plot(time, cur)
+        figure
+        plot(time, vel)
+        figure
         plot(time, tgt_pos)
         hold on
         try

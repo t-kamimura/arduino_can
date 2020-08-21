@@ -23,7 +23,7 @@ MCP_CAN CAN(SPI_CS_PIN); //set CS PIN
 RMDx8Arduino rmd(CAN);
 
 int A = 65536*0.3;
-double f = 0.2; //[Hz]
+double f = 1.0; //[Hz]
 double omega = 2*3.14*f;
 
 int offset = 65536*0.5;  //A < offset
@@ -34,6 +34,7 @@ void setup()
   delay(1000);
   rmd.canSetup();
   delay(1000);
+  rmd.writePID(MOTOR_ADDRESS, 40, 100, 50, 40, 50, 50);
   rmd.writePosition(MOTOR_ADDRESS, offset);
   delay(1000);
 
@@ -49,13 +50,12 @@ void loop()
     int32_t tgt_pos = A * sin(omega * (timer[1] - timer[0]) * 0.001) + offset;
 
     rmd.writePosition(MOTOR_ADDRESS, tgt_pos);
-    rmd.readAngle(MOTOR_ADDRESS, "multi");
+    rmd.readAngle(MOTOR_ADDRESS, 1);
 
     // print
     SERIAL.print(timer[1] - timer[0]);
     SERIAL.print(",");
     SERIAL.print(tgt_pos);
-    SERIAL.print(",");
     serialDisp(rmd.reply_buf, rmd.pos_buf);
 
     rmd.serialWriteTerminator();
