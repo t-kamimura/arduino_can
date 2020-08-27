@@ -80,20 +80,15 @@ void motor_readStatus() {
     
     unsigned char cmd_byte = reply_buf[0];
     uint8_t temperature = reply_buf[1];
-    uint16_t ucur = (reply_buf[2] << 8) + reply_buf[3];
-    uint16_t uvel = (reply_buf[4] << 8) + reply_buf[5];
-    uint16_t upos = (reply_buf[6] << 8) + reply_buf[7];
-
-    // // uint -> int
-    // int cur = ucur - 2048;
-    // int vel = uvel - 2048;
-    // int pos = upos - 2048;
+    int16_t cur = reply_buf[2] + (reply_buf[3] << 8);
+    int16_t vel = reply_buf[4] + (reply_buf[5] << 8);
+    uint16_t upos = reply_buf[6] + (reply_buf[7] << 8);
 
     SERIAL.print("Cur:");
-    SERIAL.print(ucur);
+    SERIAL.print(cur);
     SERIAL.print("\t");
     SERIAL.print("Vel:");
-    SERIAL.print(uvel);
+    SERIAL.print(vel);
     SERIAL.print("\t");
     SERIAL.print("Pos:");
     SERIAL.print(upos);

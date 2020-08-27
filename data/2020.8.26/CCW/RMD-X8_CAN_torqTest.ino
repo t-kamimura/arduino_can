@@ -74,32 +74,32 @@ void loop()
 
     if (t < 1000)
     {
-      GenCur = 0.2*(t);
+      GenCur = -0.2*(t);
     }
     
     else if (1000 <= t && t < 5000)
     {
-      GenCur = 200;
+      GenCur = -200;
     }
 
     else if (5000 <= t && t < 6000)
     {
-      GenCur = 0.2*(t-5000) + 200;
+      GenCur = -0.2*(t-5000) -200;
     } 
 
     else if (6000 <= t && t < 10000)
     {
-      GenCur = 400;
+      GenCur = -400;
     }
 
     else if (10000 <= t && t < 11000)
     {
-      GenCur = 0.2*(t-10000) + 400;
+      GenCur = -0.2*(t-10000) - 400;
     } 
 
     else if (11000 <= t && t < 15000)
     {
-      GenCur = 600;
+      GenCur = -600;
     }
 
     else if (t > 15000) {
