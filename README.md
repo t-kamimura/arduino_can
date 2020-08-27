@@ -38,3 +38,17 @@ HT-03_CAN_staytest0と出力のところだけが違う
 ### RMD-X8_CAN_moveTest
 
 サーボ制御のプロトタイプ
+
+### RMD-X8_CAN_freqResp
+
+位置入力を $\theta=A\sin(\omega t)$ として，振動させるプログラム  
+[RMDx8Arduino](https://github.com/bump5236/RMDx8Arduino)のライブラリをインクルードして関数を使用している
+
+### RMD-X8_CAN_skyentificSample
+
+Youtubeの[Skyentificさんの動画](https://www.youtube.com/watch?v=gsOPZltbvgM&t=447s)をもとに作成したサンプルプログラム
+CAN-Busのジョイスティックを用いてモータを回せる
+
+### RMD-X8_CAN_torqTest
+
+電流―トルクの関係を調べるためのプログラム
