@@ -27,4 +27,11 @@ for i = 1:7
 end
 pos_received = int64(bitshift(pos_msg(7), 48) + bitshift(pos_msg(6), 40) + bitshift(pos_msg(5), 32) + bitshift(pos_msg(4), 24) + bitshift(pos_msg(3), 16) + bitshift(pos_msg(2), 8) + pos_msg(1));
 
+% Arduino -> Matlabのmulti angleの変換はこれを用いる
+% for l = 1:length(pos)
+%     if pos(l)  > 36028797018963967
+%         pos(l) = pos(l) - 72057594037927935;
+%     end
+% end
+
 dec2bin(pos_received)
