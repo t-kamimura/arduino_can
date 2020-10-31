@@ -21,7 +21,7 @@
 #define LOOPTIME 5
 
 int A = 0.1*1024;
-double freq = 32; // [Hz]
+double freq = 8; // [Hz]
 double omega = 2*3.14*freq;
 
 int pos = 0;
