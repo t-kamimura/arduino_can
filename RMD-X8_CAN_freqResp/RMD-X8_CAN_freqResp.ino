@@ -20,13 +20,11 @@ const uint16_t MOTOR_ADDRESS = 0x141; //0x140 + ID(1~32)
 const int SPI_CS_PIN = 10;
 
 MCP_CAN CAN(SPI_CS_PIN); //set CS PIN
-RMDx8Arduino rmd(CAN);
+RMDx8Arduino rmd(CAN, MOTOR_ADDRESS;
 
-int A = 65536*0.3;
+int A = 20000;
 double f = 1.0; //[Hz]
 double omega = 2*3.14*f;
-
-int offset = 65536*0.5;  //A < offset
 
 void setup()
 {
@@ -34,8 +32,11 @@ void setup()
   delay(1000);
   rmd.canSetup();
   delay(1000);
-  rmd.writePID(MOTOR_ADDRESS, 40, 100, 50, 40, 50, 50);
-  rmd.writePosition(MOTOR_ADDRESS, offset);
+
+  rmd.clearState();
+  delay(1000);
+
+  rmd.writePID(40, 100, 50, 40, 50, 50);
   delay(1000);
 
   rmd.serialWriteTerminator();
@@ -47,16 +48,27 @@ void loop()
   while (millis() - timer[0] < 5000)
   {
     timer[1] = millis();
-    int32_t tgt_pos = A * sin(omega * (timer[1] - timer[0]) * 0.001) + offset;
+    int32_t tgt_pos = A * sin(omega * (timer[1] - timer[0]) * 0.001);
 
-    rmd.writePosition(MOTOR_ADDRESS, tgt_pos);
-    rmd.readAngle(MOTOR_ADDRESS, 1);
+    rmd.writePosition(tgt_pos);
+    rmd.readPosition();
 
     // print
     SERIAL.print(timer[1] - timer[0]);
     SERIAL.print(",");
     SERIAL.print(tgt_pos);
-    serialDisp(rmd.reply_buf, rmd.pos_buf);
+
+    // byteならこっち
+    // serialDisp(rmd.reply_buf, rmd.pos_buf);
+    
+    // 10進数ならこっち
+    SERIAL.print(",");
+    SERIAL.print(rmd.present_current);
+    SERIAL.print(",");
+    SERIAL.print(rmd.present_velocity);
+    SERIAL.print(",");
+    SERIAL.println(rmd.present_position);    //32bitまで
+
 
     rmd.serialWriteTerminator();
 
@@ -67,7 +79,7 @@ void loop()
     }
   }
 
-//  motor_clear(MOTOR_ADDRESS);
+  rmd.clearState();
   delay(500);
   SERIAL.println("Program finish!");
   while (true)
