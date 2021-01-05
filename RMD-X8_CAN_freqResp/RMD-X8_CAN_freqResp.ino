@@ -61,7 +61,7 @@ void loop()
   while (millis() - timer[0] < 5000)
   {
     timer[1] = millis();
-    int32_t tgt_pos = A * sin(omega * (timer[1] - timer[0]) * 0.001) + offset;
+    int32_t tgt_pos = A * sin(omega * (timer[1] - timer[0]) * 0.001);
 
     rmd.writePosition(tgt_pos);
     rmd.readPosition();
@@ -73,6 +73,9 @@ void loop()
     SERIAL.print(angle);
 //    serialDisp(rmd.reply_buf, rmd.pos_buf); // for debug
     rmd.serialWriteTerminator();  // Carriage Return & Line Feed
+    SERIAL.print(tgt_pos);
+
+    rmd.serialWriteTerminator();
 
     timer[2] = millis() - timer[1];
     if (timer[2] < LOOPTIME)
@@ -81,6 +84,7 @@ void loop()
     }
   }
 
+  rmd.clearState();
   delay(500);
   SERIAL.println("Program finish!");
   while (true)

@@ -15,8 +15,10 @@
 #define BAUDRATE 115200 //シリアル通信がボトルネックにならないよう，速めに設定しておく
 #define LOOPTIME 5
 
-int pos = 300;
-
+int16_t current;
+int32_t velocity, position;
+unsigned char len = 0;
+unsigned char cmd_buf[8], reply_buf[8];
 unsigned long timer[3];
 
 //the cs pin of the version after v1.1 is default to D9
@@ -24,9 +26,6 @@ unsigned long timer[3];
 const int SPI_CS_PIN = 10;
 
 MCP_CAN CAN(SPI_CS_PIN); //set CS PIN
-
-unsigned char len = 0;
-unsigned char cmd_buf[8], reply_buf[8];
 
 void setup() {
   SERIAL.begin(BAUDRATE);
@@ -51,8 +50,72 @@ void loop() {
     SERIAL.print(timer[1] - timer[0]);
     SERIAL.print("\t");
 
-    motor_writeCurrent(MOTOR_ADDRESS, 0);
-    motor_readStatus();
+    // 行いたい制御に応じてコメントアウトするように
+    // CURRENT control is int16_t type. (2byteの符号付き整数)
+    current = 100;    // -2000~2000
+    cmd_buf[0] = 0xA1;
+    cmd_buf[1] = 0x00;
+    cmd_buf[2] = 0x00;
+    cmd_buf[3] = 0x00;
+    cmd_buf[4] = current & 0xFF;
+    cmd_buf[5] = (current >> 8) & 0xFF;
+    cmd_buf[6] = 0x00;
+    cmd_buf[7] = 0x00;
+    // ======================================================
+
+    // VELOCITY control is int32_t type. (4byteの符号付き整数)
+    // velocity = 100;
+    // cmd_buf[0] = 0xA2;
+    // cmd_buf[1] = 0x00;
+    // cmd_buf[2] = 0x00;
+    // cmd_buf[3] = 0x00;
+    // cmd_buf[4] = velocity & 0xFF;
+    // cmd_buf[5] = (velocity >> 8) & 0xFF;
+    // cmd_buf[6] = (velocity >> 16) & 0xFF;
+    // cmd_buf[7] = (velocity >> 24) & 0xFF;
+    // ======================================================
+
+    // POSITION control is int32_t type. (4byteの符号付き整数)
+    // position = 100;
+    // cmd_buf[0] = 0xA3;
+    // cmd_buf[1] = 0x00;
+    // cmd_buf[2] = 0x00;
+    // cmd_buf[3] = 0x00;
+    // cmd_buf[4] = position & 0xFF;
+    // cmd_buf[5] = (position >> 8) & 0xFF;
+    // cmd_buf[6] = (position >> 16) & 0xFF;
+    // cmd_buf[7] = (position >> 24) & 0xFF;
+    // ======================================================
+
+    // Send message
+    unsigned char sendState = CAN.sendMsgBuf(MOTOR_ADDRESS, 0, 8, cmd_buf);
+    if (sendState != CAN_OK) {
+      SERIAL.println("Error Sending Message...");
+      SERIAL.println(sendState);
+    }
+
+    delay(100); // reply_bufを受け取るための遅延
+
+    //check if data coming
+    if (CAN_MSGAVAIL == CAN.checkReceive()) {
+      CAN.readMsgBuf(&len, reply_buf); //read data, len: data length, buf: data buf
+      
+      unsigned char cmd_byte = reply_buf[0];
+      uint8_t temperature = reply_buf[1];
+      int16_t present_current = ((int16_t)reply_buf[3] << 8) + reply_buf[2];
+      int16_t present_velocity = ((int16_t)reply_buf[5] << 8) + reply_buf[4];
+      uint16_t encoder_pos = ((uint16_t)reply_buf[7] << 8) + reply_buf[6];
+
+      SERIAL.print("Cur:");
+      SERIAL.print(present_current);
+      SERIAL.print("\t");
+      SERIAL.print("Vel:");
+      SERIAL.print(present_velocity);
+      SERIAL.print("\t");
+      SERIAL.print("Pos:");
+      SERIAL.print(encoder_pos);
+      SERIAL.println();
+    }
     delay(1000);
   }
   
