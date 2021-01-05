@@ -1,4 +1,18 @@
-/* 周波数応答確認用*/
+/* Frequency responce test                        */
+/* Original version developed by T. Kamimura      */
+/* kamimura.tomoya@nitech.ac.jp                   */
+
+/*------------------------------------------------*/
+/* NOTICE                                         */
+/* (1)                                            */
+/* Before use, download RMDx8Arduino Library      */
+/* from https://github.com/bump5236/RMDx8Arduino  */
+/* developed by bump5235.                         */
+/* (2)                                            */
+/* Before use, install can-bus shield library     */
+/* for details, please see                        */
+/* https://learn.sparkfun.com/tutorials/can-bus-shield-hookup-guide?_ga=2.199310185.651624511.1609811680-1530731643.1609811680 */
+/*------------------------------------------------*/
 
 #include <mcp_can.h>
 #include <SPI.h>
@@ -11,22 +25,22 @@
 #define SERIAL Serial
 #endif
 
-#define BAUDRATE 115200 //シリアル通信がボトルネックにならないよう，速めに設定しておく
+#define BAUDRATE 115200
 #define LOOPTIME 5 //[ms] 
 
 unsigned long timer[3];
 
-const uint16_t MOTOR_ADDRESS = 0x141; //0x140 + ID(1~32)
+const uint16_t MOTOR_ADDRESS = 0x141; //0x140 + ID(1 to 32)
 const int SPI_CS_PIN = 10;
 
 MCP_CAN CAN(SPI_CS_PIN); //set CS PIN
-RMDx8Arduino rmd(CAN);
+RMDx8Arduino rmd(CAN, MOTOR_ADDRESS);
 
-int A = 65536*0.3;
-double f = 1.0; //[Hz]
+int A = 20 * 6 * 100; // (servoHornDegree) * (gearRatio) * (encorderResolution)
+double f = 2.0; // frequency [Hz]
 double omega = 2*3.14*f;
 
-int offset = 65536*0.5;  //A < offset
+int offset = 5 * 6 * 100;  // (OffsetAngle) * (gearRatio) * (encorderResolution)
 
 void setup()
 {
@@ -34,8 +48,8 @@ void setup()
   delay(1000);
   rmd.canSetup();
   delay(1000);
-  rmd.writePID(MOTOR_ADDRESS, 40, 100, 50, 40, 50, 50);
-  rmd.writePosition(MOTOR_ADDRESS, offset);
+//  rmd.writePID(40, 100, 50, 40, 50, 50);
+  rmd.writePosition(offset);
   delay(1000);
 
   rmd.serialWriteTerminator();
@@ -49,16 +63,16 @@ void loop()
     timer[1] = millis();
     int32_t tgt_pos = A * sin(omega * (timer[1] - timer[0]) * 0.001) + offset;
 
-    rmd.writePosition(MOTOR_ADDRESS, tgt_pos);
-    rmd.readAngle(MOTOR_ADDRESS, 1);
+    rmd.writePosition(tgt_pos);
+    rmd.readPosition();
+    int32_t angle = rmd.present_position * 0.01 / 6; // Calc present angle [deg] 
 
     // print
     SERIAL.print(timer[1] - timer[0]);
     SERIAL.print(",");
-    SERIAL.print(tgt_pos);
-    serialDisp(rmd.reply_buf, rmd.pos_buf);
-
-    rmd.serialWriteTerminator();
+    SERIAL.print(angle);
+//    serialDisp(rmd.reply_buf, rmd.pos_buf); // for debug
+    rmd.serialWriteTerminator();  // Carriage Return & Line Feed
 
     timer[2] = millis() - timer[1];
     if (timer[2] < LOOPTIME)
@@ -67,7 +81,6 @@ void loop()
     }
   }
 
-//  motor_clear(MOTOR_ADDRESS);
   delay(500);
   SERIAL.println("Program finish!");
   while (true)

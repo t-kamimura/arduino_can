@@ -143,4 +143,3 @@ void motor_writePosition(unsigned char *addr, int32_t position) {
   // Send message
   writeCmd(addr, cmd_buf);
 }
-
