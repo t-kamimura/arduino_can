@@ -13,11 +13,15 @@
 #define MOTOR_ADDRESS 0x141 //0x140 + ID(1~32)
 
 #define BAUDRATE 115200 //シリアル通信がボトルネックにならないよう，速めに設定しておく
-//#define LOOPTIME 5
 
 int32_t position = 0;
 unsigned char len = 0;
 unsigned char cmd_buf[8], reply_buf[8];
+
+uint8_t temperature = 0;
+int16_t present_current = 0;
+int16_t present_velocity = 0;
+uint16_t encoder_pos = 0;
 
 //the cs pin of the version after v1.1 is default to D9
 //v0.9b and v1.0 is default D10
@@ -69,10 +73,10 @@ void loop() {
       CAN.readMsgBuf(&len, reply_buf); //read data, len: data length, buf: data buf
       
       unsigned char cmd_byte = reply_buf[0];
-      uint8_t temperature = reply_buf[1];
-      int16_t present_current = ((int16_t)reply_buf[3] << 8) + reply_buf[2];
-      int16_t present_velocity = ((int16_t)reply_buf[5] << 8) + reply_buf[4];
-      uint16_t encoder_pos = ((uint16_t)reply_buf[7] << 8) + reply_buf[6];
+      temperature = reply_buf[1];
+      present_current = ((int16_t)reply_buf[3] << 8) + reply_buf[2];
+      present_velocity = ((int16_t)reply_buf[5] << 8) + reply_buf[4];
+      encoder_pos = ((uint16_t)reply_buf[7] << 8) + reply_buf[6];
 
       SERIAL.print("Cur:");
       SERIAL.print(present_current);
@@ -90,42 +94,5 @@ void loop() {
   SERIAL.println("Program finish!");
   while (true) {
     delay(100);
-  }
-}
-
-
-
-// Function ----------------------------------------------------
-void writeCmd(unsigned char *addr, unsigned char *buf) {
-  // CAN通信で送る
-  unsigned char sendState = CAN.sendMsgBuf(addr, 0, 8, buf);
-  if (sendState != CAN_OK) {
-    SERIAL.println("Error Sending Message...");
-    SERIAL.println(sendState);
-  }
-}
-void motor_readStatus() {
-  //check if data coming
-  if (CAN_MSGAVAIL == CAN.checkReceive()) {
-    CAN.readMsgBuf(&len, reply_buf); //read data, len: data length, buf: data buf
-    
-    unsigned char cmd_byte = reply_buf[0];
-    uint8_t temperature = reply_buf[1];
-    int16_t cur = reply_buf[2] + (reply_buf[3] << 8);
-    int16_t vel = reply_buf[4] + (reply_buf[5] << 8);
-    uint16_t upos = reply_buf[6] + (reply_buf[7] << 8);
-
-    SERIAL.print("Cur:");
-    SERIAL.print(cur);
-    SERIAL.print("\t");
-    SERIAL.print("Vel:");
-    SERIAL.print(vel);
-    SERIAL.print("\t");
-    SERIAL.print("Pos:");
-    SERIAL.print(upos);
-    SERIAL.println();
-
-  } else {
-    SERIAL.println("No Data");
   }
 }
