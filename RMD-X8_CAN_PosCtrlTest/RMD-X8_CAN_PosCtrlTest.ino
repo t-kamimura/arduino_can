@@ -21,7 +21,7 @@ unsigned char cmd_buf[8], reply_buf[8];
 uint8_t temperature = 0;
 int16_t present_current = 0;
 int16_t present_velocity = 0;
-uint16_t encoder_pos = 0;
+int16_t encoder_pos = 0;
 
 //the cs pin of the version after v1.1 is default to D9
 //v0.9b and v1.0 is default D10
@@ -76,7 +76,7 @@ void loop() {
       temperature = reply_buf[1];
       present_current = ((int16_t)reply_buf[3] << 8) + reply_buf[2];
       present_velocity = ((int16_t)reply_buf[5] << 8) + reply_buf[4];
-      encoder_pos = ((uint16_t)reply_buf[7] << 8) + reply_buf[6];
+      encoder_pos = ((int16_t)reply_buf[7] << 8) + reply_buf[6];
 
       SERIAL.print("Cur:");
       SERIAL.print(present_current);
